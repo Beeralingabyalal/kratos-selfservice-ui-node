@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Ory Kratos NodeJS / ExpressJS User Interface Reference Implementation
 
 [![tests](https://github.com/ory/kratos-selfservice-ui-node/actions/workflows/test.yml/badge.svg)](https://github.com/ory/kratos-selfservice-ui-node/actions/workflows/test.yml)
@@ -148,3 +149,6 @@ make build-sdk-docker
 ```shell script
 make clean-sdk
 ```
+=======
+# kratos-selfservice-ui-node
+>>>>>>> 9954950cc681d418ba0ae2f09ebe444e7f4819e5
