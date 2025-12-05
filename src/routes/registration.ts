@@ -11,12 +11,10 @@ import {
 } from "../pkg"
 import { UserAuthCard } from "@ory/elements-markup"
 import { URLSearchParams } from "url"
-
 // A simple express handler that shows the registration screen.
 export const createRegistrationRoute: RouteCreator =
   (createHelpers) => (req, res, next) => {
     res.locals.projectName = "Create account"
-
     const {
       flow,
       return_to,
@@ -27,7 +25,6 @@ export const createRegistrationRoute: RouteCreator =
     } = req.query
     const { frontend, kratosBrowserUrl, logoUrl, extraPartials } =
       createHelpers(req, res)
-
     const initFlowQuery = new URLSearchParams({
       ...(return_to && { return_to: return_to.toString() }),
       ...(organization && { organization: organization.toString() }),
@@ -36,7 +33,6 @@ export const createRegistrationRoute: RouteCreator =
         after_verification_return_to: after_verification_return_to.toString(),
       }),
     })
-
     if (isQuerySet(login_challenge)) {
       logger.debug("login_challenge found in URL query: ", { query: req.query })
       initFlowQuery.append("login_challenge", login_challenge)
@@ -45,13 +41,11 @@ export const createRegistrationRoute: RouteCreator =
         query: req.query,
       })
     }
-
     const initFlowUrl = getUrlForFlow(
       kratosBrowserUrl,
       "registration",
       initFlowQuery,
     )
-
     // The flow is used to identify the settings and registration flow and
     // return data like the csrf_token and so on.
     if (!isQuerySet(flow)) {
@@ -61,7 +55,6 @@ export const createRegistrationRoute: RouteCreator =
       res.redirect(303, initFlowUrl)
       return
     }
-
     frontend
       .getRegistrationFlow({ id: flow, cookie: req.header("Cookie") })
       .then(({ data: flow }) => {
@@ -76,7 +69,6 @@ export const createRegistrationRoute: RouteCreator =
             login_challenge: flow.oauth2_login_request.challenge,
           }),
         })
-
         res.render("registration", {
           nodes: flow.ui.nodes,
           card: UserAuthCard(
@@ -100,7 +92,6 @@ export const createRegistrationRoute: RouteCreator =
       })
       .catch(redirectOnSoftError(res, next, initFlowUrl))
   }
-
 export const registerRegistrationRoute: RouteRegistrator = (
   app,
   createHelpers = defaultConfig,

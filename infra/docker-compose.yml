@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: kratos
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: kratos
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kratos"]
+      interval: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  kratos-migrate:
+    image: oryd/kratos:v1.1.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DSN=postgres://kratos:secret@postgres:5432/kratos?sslmode=disable
+    command: migrate sql -e --yes
+
+  kratos:
+    image: oryd/kratos:v1.1.0
+    container_name: kratos
+    depends_on:
+      - kratos-migrate
+    environment:
+      - DSN=postgres://kratos:secret@postgres:5432/kratos?sslmode=disable
+    ports:
+      - "4433:4433"
+      - "4434:4434"
+    volumes:
+      - ./kratos/kratos.yml:/etc/config/kratos/kratos.yml
+      - ./kratos/identity.schema.scansure.json:/etc/config/kratos/identity.schema.scansure.json
+    command: serve --dev --config /etc/config/kratos/kratos.yml
+
+volumes:
+  postgres_data:

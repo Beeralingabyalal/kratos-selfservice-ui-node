@@ -1,0 +1,63 @@
+version: v1.1.0
+
+dsn: postgres://kratos:secret@postgres:5432/kratos?sslmode=disable
+
+log:
+  level: debug
+  format: json
+
+serve:
+  public:
+    base_url: http://localhost:4433/
+  admin:
+    base_url: http://localhost:4434/
+
+courier:
+  smtp:
+    connection_uri: smtp://mailhog:1025
+
+identity:
+  schemas:
+    - id: default
+      url: file:///etc/config/kratos/identity.schema.scansure.json
+
+selfservice:
+  default_browser_return_url: http://localhost:3000/
+  allowed_return_urls:
+    - http://localhost:3000
+
+  flows:
+    login:
+      ui_url: http://localhost:3000/login
+      lifespan: 1h
+
+    registration:
+      ui_url: http://localhost:3000/registration
+      lifespan: 1h
+
+    settings:
+      ui_url: http://localhost:3000/settings
+      lifespan: 1h
+      privileged_session_max_age: 1h
+
+    recovery:
+      ui_url: http://localhost:3000/recovery
+      lifespan: 1h
+      notify_unknown_recipients: false
+
+    verification:
+      ui_url: http://localhost:3000/verification
+      lifespan: 1h
+      notify_unknown_recipients: false
+
+secrets:
+  cookie:
+    - "please-change-this-secret"
+
+hashers:
+  argon2:
+    memory: 64MB          # MUST be STRING
+    iterations: 2
+    parallelism: 1
+    salt_length: 16
+    key_length: 32
