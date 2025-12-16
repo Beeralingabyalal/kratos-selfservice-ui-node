@@ -1,0 +1,14 @@
+const requireAdmin = require("../../lib/requireAdmin.audit");
+const { createTenant } = require("../../services/tenantService");
+
+module.exports = requireAdmin(async (req, res) => {
+  const { tenantName, ownerEmail } = req.body;
+
+  const result = await createTenant(tenantName, ownerEmail);
+
+  res.json({
+    message: "Tenant created successfully",
+    tenantId: result.tenantId,
+    ownerIdentityId: result.ownerIdentityId
+  });
+});

@@ -14,8 +14,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kratos"]
-      interval: 5s
-      retries: 5
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
 
   mailhog:
     image: mailhog/mailhog
@@ -23,6 +26,27 @@ services:
     ports:
       - "1025:1025"
       - "8025:8025"
+
+  keto:
+    image: oryd/keto:v0.11.0
+    container_name: keto
+    command: serve --config /etc/config/keto.yml
+    ports:
+      - "4466:4466"   # read API
+      - "4467:4467"   # admin API
+    volumes:
+      - ./keto/keto.yml:/etc/config/keto.yml
+
+  keto-bootstrap:
+    build: ./keto/bootstrap
+    container_name: keto_bootstrap
+    environment:
+      - KETO_ADMIN_URL=http://keto:4467
+    ports:
+      - "4000:4000"
+    depends_on:
+      - keto
+
 
   kratos-migrate:
     image: oryd/kratos:v1.1.0

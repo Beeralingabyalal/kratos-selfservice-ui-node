@@ -1,0 +1,26 @@
+[
+  {
+    "id": "tenant-rule",
+    "match": {
+      "url": "<http|https>://*/api/tenant/<.*>",
+      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+    },
+    "upstream": {
+      "url": "http://kratos-selfservice-ui-node:3000",
+      "preserve_host": true
+    },
+    "authenticators": [
+      { "handler": "cookie_session" }
+    ],
+    "authorizer": {
+      "handler": "keto_engine_acp_ory",
+      "config": {
+        "required_action": "access",
+        "required_resource": "tenant:<.Object>"
+      }
+    },
+    "mutators": [
+      { "handler": "no_op" }
+    ]
+  }
+]

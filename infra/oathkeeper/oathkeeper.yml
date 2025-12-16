@@ -1,0 +1,25 @@
+serve:
+  proxy:
+    port: 4455
+  api:
+    port: 4456
+
+access_rules:
+  repositories:
+    - file:///etc/oathkeeper/rules
+
+authenticators:
+  cookie_session:
+    enabled: true
+    config:
+      check_session_url: http://kratos:4433/sessions/whoami
+
+authorizers:
+  keto_engine_acp_ory:
+    enabled: false        # MUST BE FALSE
+    config:
+      base_url: http://keto:4466
+
+mutators:
+  no_op:
+    enabled: true
