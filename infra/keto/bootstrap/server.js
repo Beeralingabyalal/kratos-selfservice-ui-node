@@ -32,10 +32,7 @@ app.post("/bootstrap/tenant", async (req, res) => {
         namespace: "tenant",
         object: tenantId,
         relation: "access",
-        subject: {
-          namespace: "identity",
-          object: userId
-        }
+        subject_id: userId
       }
     );
 
