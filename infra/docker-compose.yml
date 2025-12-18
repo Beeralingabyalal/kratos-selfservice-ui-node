@@ -47,7 +47,6 @@ services:
     depends_on:
       - keto
 
-
   kratos-migrate:
     image: oryd/kratos:v1.1.0
     depends_on:
@@ -71,6 +70,17 @@ services:
       - ./kratos/kratos.yml:/etc/config/kratos/kratos.yml
       - ./kratos/identity.schema.scansure.json:/etc/config/kratos/identity.schema.scansure.json
     command: serve --dev --config /etc/config/kratos/kratos.yml
+
+  envoy:
+    image: envoyproxy/envoy:v1.30-latest
+    container_name: envoy
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./authz-adapter/envoy-config.yaml:/etc/envoy/envoy.yaml:ro
+    command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]
+    depends_on:
+      - kratos
 
 volumes:
   postgres_data:
