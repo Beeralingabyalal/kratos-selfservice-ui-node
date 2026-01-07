@@ -69,7 +69,32 @@ services:
     volumes:
       - ./kratos/kratos.yml:/etc/config/kratos/kratos.yml
       - ./kratos/identity.schema.scansure.json:/etc/config/kratos/identity.schema.scansure.json
+      - ./kratos/registration-hook.json:/etc/config/kratos/registration-hook.json
     command: serve --dev --config /etc/config/kratos/kratos.yml
+
+  oathkeeper:
+    image: oryd/oathkeeper:v0.40.6
+    container_name: oathkeeper
+    ports:
+      - "4455:4455"
+      - "4456:4456"
+    volumes:
+      - ./oathkeeper/oathkeeper.yml:/etc/oathkeeper/config.yml
+      - ./oathkeeper/rules:/etc/oathkeeper/rules
+    command: ["serve", "-c", "/etc/oathkeeper/config.yml"]
+    depends_on:
+      - kratos
+      - keto
+
+  authz-adapter:
+    build: ./authz-adapter
+    container_name: authz_adapter
+    ports:
+      - "7000:7000"
+    environment:
+      - KETO_READ_URL=http://keto:4466
+    depends_on:
+      - keto
 
   envoy:
     image: envoyproxy/envoy:v1.30-latest

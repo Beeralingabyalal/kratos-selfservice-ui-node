@@ -27,6 +27,9 @@ selfservice:
     - http://localhost:3000
 
   flows:
+    error:
+      ui_url: http://localhost:3000/error
+
     login:
       ui_url: http://localhost:3000/login
       lifespan: 1h
