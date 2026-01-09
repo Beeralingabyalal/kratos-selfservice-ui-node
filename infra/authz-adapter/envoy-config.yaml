@@ -11,6 +11,7 @@ static_resources:
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
                 stat_prefix: ingress_http
+
                 route_config:
                   name: local_route
                   virtual_hosts:
@@ -18,10 +19,33 @@ static_resources:
                       domains: ["*"]
                       routes:
                         - match:
-                            prefix: "/"
+                            prefix: "/api/"
                           route:
                             cluster: kratos_ui
+
                 http_filters:
+                  # 🔐 AUTHORIZATION FILTER (THIS WAS MISSING)
+                  - name: envoy.filters.http.ext_authz
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+                      http_service:
+                        server_uri:
+                          uri: http://authz-adapter:7000
+                          cluster: authz_adapter
+                          timeout: 2s
+                        path_prefix: /authorize
+                        authorization_request:
+                          allowed_headers:
+                            patterns:
+                              - exact: x-user-id
+                              - exact: x-tenant-id
+                        authorization_response:
+                          allowed_upstream_headers:
+                            patterns:
+                              - exact: x-user-id
+                              - exact: x-tenant-id
+
+                  # 🚦 ROUTER MUST BE LAST
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
@@ -40,3 +64,17 @@ static_resources:
                     socket_address:
                       address: host.docker.internal
                       port_value: 3000
+
+    - name: authz_adapter
+      connect_timeout: 5s
+      type: logical_dns
+      lb_policy: round_robin
+      load_assignment:
+        cluster_name: authz_adapter
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: authz-adapter
+                      port_value: 7000

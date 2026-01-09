@@ -8,30 +8,31 @@ const KETO_READ_URL =
   process.env.KETO_READ_URL || "http://keto:4466";
 
 app.post("/authorize", async (req, res) => {
+  const userId = req.header("x-user-id");
+  const tenantId = req.header("x-tenant-id");
+
+  // Hard guard
+  if (!userId || !tenantId) {
+    return res.status(403).json({ allowed: false });
+  }
+
   try {
-    const userId = req.headers["x-user-id"];
-    const tenantId = req.headers["x-tenant-id"];
-
-    if (!userId || !tenantId) {
-      return res.status(401).json({
-        allowed: false,
-        reason: "Missing user or tenant"
-      });
-    }
-
-    // Ask Keto
-    await axios.post(`${KETO_READ_URL}/check`, {
-      namespace: "tenant",
-      object: tenantId,
-      relation: "access",
-      subject: {
-        namespace: "identity",
-        object: userId
+    const { data } = await axios.post(
+      `${KETO_READ_URL}/relation-tuples/check`,
+      {
+        namespace: "tenant",
+        object: tenantId,
+        relation: "access",
+        subject_id: userId   // :white_check_mark: THIS IS THE FIX
       }
+    );
+
+    return res.status(data.allowed ? 200 : 403).json({
+      allowed: data.allowed
     });
 
-    return res.json({ allowed: true });
   } catch (err) {
+    console.error("AuthZ Adapter error:", err.response?.data || err.message);
     return res.status(403).json({ allowed: false });
   }
 });
