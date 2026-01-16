@@ -25,6 +25,7 @@ selfservice:
   default_browser_return_url: http://localhost:3000/
   allowed_return_urls:
     - http://localhost:3000
+    - http://localhost:3001
 
   flows:
     error:
@@ -46,12 +47,10 @@ selfservice:
     recovery:
       ui_url: http://localhost:3000/recovery
       lifespan: 1h
-      notify_unknown_recipients: false
 
     verification:
       ui_url: http://localhost:3000/verification
       lifespan: 1h
-      notify_unknown_recipients: false
 
 secrets:
   cookie:
@@ -59,7 +58,7 @@ secrets:
 
 hashers:
   argon2:
-    memory: 64MB          # MUST be STRING
+    memory: 64MB
     iterations: 2
     parallelism: 1
     salt_length: 16

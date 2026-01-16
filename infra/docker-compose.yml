@@ -31,6 +31,8 @@ services:
     image: oryd/keto:v0.11.0
     container_name: keto
     command: serve --config /etc/config/keto.yml
+    environment:
+      - DSN=postgres://kratos:secret@postgres:5432/keto?sslmode=disable
     ports:
       - "4466:4466"   # read API
       - "4467:4467"   # admin API
@@ -69,8 +71,34 @@ services:
     volumes:
       - ./kratos/kratos.yml:/etc/config/kratos/kratos.yml
       - ./kratos/identity.schema.scansure.json:/etc/config/kratos/identity.schema.scansure.json
-      - ./kratos/registration-hook.json:/etc/config/kratos/registration-hook.json
     command: serve --dev --config /etc/config/kratos/kratos.yml
+
+  hydra-migrate:
+    image: oryd/hydra:v2.2.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DSN=postgres://kratos:secret@postgres:5432/hydra?sslmode=disable
+    command: migrate sql -e --yes
+
+  hydra:
+    image: oryd/hydra:v2.2.0
+    container_name: hydra
+    depends_on:
+      - hydra-migrate
+    environment:
+      - DSN=postgres://kratos:secret@postgres:5432/hydra?sslmode=disable
+      - URLS_SELF_ISSUER=http://localhost:4444
+      - URLS_LOGIN=http://localhost:3000/login
+      - URLS_CONSENT=http://localhost:3000/consent
+      - SECRETS_SYSTEM=supersecretkey123   # <-- ADD THIS
+
+    ports:
+      - "4444:4444"   # public
+      - "4445:4445"   # admin
+    command: serve all --dev
+
 
   oathkeeper:
     image: oryd/oathkeeper:v0.40.6
