@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const KETO_ADMIN_URL = "http://localhost:4467";
+const KETO_ADMIN_URL =
+  process.env.KETO_ADMIN_URL || "http://localhost:4467";
 
 export async function addUserToTenant(
   tenantId: string,

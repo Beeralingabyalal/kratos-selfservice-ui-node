@@ -23,6 +23,10 @@ import {
   registerWelcomeRoute,
   registerLogoutRoute,
 } from "./routes"
+import { registerAdminRoutes } from "./routes/admin"
+import tenantRouter from "./routes/tenant"
+import { registerSessionExportRoute } from "./routes/sessionExport"
+
 import { csrfErrorHandler } from "./routes/csrfError"
 import bodyParser from "body-parser"
 import cookieParser from "cookie-parser"
@@ -94,6 +98,10 @@ registerVerificationRoute(router)
 registerSessionsRoute(router)
 registerWelcomeRoute(router)
 registerErrorRoute(router)
+registerAdminRoutes(router)
+registerSessionExportRoute(router)
+router.use(tenantRouter)
+
 
 // all routes registered under the /consent path are protected by CSRF
 router.use("/consent", doubleCsrfProtection)

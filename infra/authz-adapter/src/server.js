@@ -7,13 +7,20 @@ app.use(express.json());
 const KETO_READ_URL =
   process.env.KETO_READ_URL || "http://keto:4466";
 
-app.post("/authorize", async (req, res) => {
-  const userId = req.header("x-user-id");
-  const tenantId = req.header("x-tenant-id");
+/**
+ * Envoy calls:
+ * /authorize/api/anything
+ */
+app.all("/authorize/*", async (req, res) => {
 
-  // Hard guard
-  if (!userId || !tenantId) {
-    return res.status(403).json({ allowed: false });
+  // 🔑 User from JWT (forwarded by Envoy)
+  const user = req.header("x-user-id");
+
+  // 🏢 Tenant from query param
+  const tenant = req.query.tenant;
+
+  if (!user || !tenant) {
+    return res.sendStatus(403);
   }
 
   try {
@@ -21,19 +28,17 @@ app.post("/authorize", async (req, res) => {
       `${KETO_READ_URL}/relation-tuples/check`,
       {
         namespace: "tenant",
-        object: tenantId,
-        relation: "access",
-        subject_id: userId   // :white_check_mark: THIS IS THE FIX
+        object: tenant,
+        relation: "member",
+        subject_id: user
       }
     );
 
-    return res.status(data.allowed ? 200 : 403).json({
-      allowed: data.allowed
-    });
+    return res.sendStatus(data.allowed ? 200 : 403);
 
   } catch (err) {
-    console.error("AuthZ Adapter error:", err.response?.data || err.message);
-    return res.status(403).json({ allowed: false });
+    console.error("AuthZ error:", err.response?.data || err.message);
+    return res.sendStatus(403);
   }
 });
 
