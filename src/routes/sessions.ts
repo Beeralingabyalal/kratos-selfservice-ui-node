@@ -13,7 +13,7 @@ export const createSessionsRoute: RouteCreator =
   (createHelpers) => async (req, res) => {
     res.locals.projectName = "Session Information"
     const { frontend } = createHelpers(req, res)
-    const session = req.session
+    const session = (req as any).session
 
     // Create a logout URL
     const logoutUrl =
@@ -69,8 +69,10 @@ export const createSessionsRoute: RouteCreator =
       },
       // map the session's authentication level to a human readable string
       // this produces a list of objects
-      authMethods: session?.authentication_methods?.reduce<any>(
-        (methods, method, i) => {
+      authMethods: session?.authentication_methods?.reduce(
+        (methods: any[], 
+          method: any,
+           i: number) => {
           methods.push({
             [`authentication method used`]: `${method.method} (${
               method.completed_at && new Date(method.completed_at).toUTCString()

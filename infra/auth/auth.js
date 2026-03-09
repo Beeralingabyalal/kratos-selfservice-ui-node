@@ -1,6 +1,9 @@
 const jwt = require("jsonwebtoken");
+const axios = require("axios");
 
-module.exports = function auth(req, res, next) {
+const KETO_READ_URL = process.env.KETO_READ_URL || "http://keto:4466";
+
+module.exports = async function auth(req, res, next) {
   const header = req.headers.authorization;
 
   if (!header) {
@@ -11,39 +14,48 @@ module.exports = function auth(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const userTenants = decoded.tenants || [];
+    const userId = decoded.userId;
     const roles = decoded.roles || [];
 
     let requestedTenants = req.query.tenant;
-
     if (!requestedTenants) {
       return res.status(400).json({ msg: "tenant query param required" });
     }
 
-    // ✅ support single & multiple tenants
     if (!Array.isArray(requestedTenants)) {
       requestedTenants = [requestedTenants];
     }
 
-    const unauthorized = requestedTenants.filter(
-      t => !userTenants.includes(t)
-    );
+    // 🔥 LIVE CHECK WITH KETO
+    for (const tenant of requestedTenants) {
+      const { data } = await axios.get(
+        `${KETO_READ_URL}/relation-tuples/check`,
+        {
+          params: {
+            namespace: "tenant",
+            object: tenant,
+            relation: "access",
+            subject_id: userId
+          }
+        }
+      );
 
-    if (unauthorized.length > 0) {
-      return res.status(403).json({
-        msg: "Access denied for tenant(s)",
-        unauthorized
-      });
+      if (!data.allowed) {
+        return res.status(403).json({
+          msg: "Access denied for tenant",
+          tenant
+        });
+      }
     }
 
-    req.userId = decoded.userId;
+    req.userId = userId;
     req.tenants = requestedTenants;
     req.roles = roles;
 
     next();
+
   } catch (err) {
-    console.error("JWT ERROR:", err.message);
-    return res.status(401).json({ msg: "Invalid JWT" });
+    console.error("AUTH ERROR:", err.response?.data || err.message);
+    res.status(401).json({ msg: "Authorization service error" });
   }
 };

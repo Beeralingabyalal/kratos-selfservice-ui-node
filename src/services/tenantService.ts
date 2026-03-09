@@ -1,53 +1,60 @@
-import { query } from "../lib/db"
-import { createKratosIdentity } from "./kratosClient"
-import { addUserToTenant } from "./tenant.service"
+import { withTransaction } from "../lib/db";
+import { addUserToTenantRelation } from "./tenantAccess.service";
 
-const KETO_BOOTSTRAP_URL =
-  process.env.KETO_BOOTSTRAP_URL || "http://localhost:5001"
+export type TenantRow = {
+  id: string;
+  name: string;
+};
 
-/* ✅ Strong type */
-type KratosIdentity = {
-  id: string
-  traits?: any
-}
+export async function createMultipleTenants(
+  tenantNames: string[],
+  identityId: string
+): Promise<TenantRow[]> {
+  return withTransaction(async (client) => {
+    const tenants: TenantRow[] = [];
 
-export async function createTenant(
-  tenantName: string,
-  ownerEmail: string
-) {
+    for (const name of tenantNames) {
+      // 1️⃣ Create tenant (idempotent)
+      const insert = await client.query(
+        `
+        INSERT INTO tenants (name)
+        VALUES ($1)
+        ON CONFLICT (name) DO NOTHING
+        RETURNING id, name
+        `,
+        [name]
+      );
 
-  // 1️⃣ create tenant row
-  const result = await query(
-    "INSERT INTO tenants(name) VALUES ($1) RETURNING id",
-    [tenantName],
-  )
+      // 2️⃣ Get tenant row (new or existing)
+      const tenant: TenantRow =
+        insert.rows[0] ??
+        (
+          await client.query(
+            `SELECT id, name FROM tenants WHERE name = $1`,
+            [name]
+          )
+        ).rows[0];
 
-  const tenantId = result.rows[0].id
+      // 3️⃣ Ensure DB mapping (idempotent)
+      await client.query(
+        `
+        INSERT INTO tenant_users (tenant_id, identity_id, role)
+        VALUES ($1, $2, 'platform.admin')
+        ON CONFLICT (tenant_id, identity_id) DO NOTHING
+        `,
+        [tenant.id, identityId]
+      );
 
-  // 2️⃣ create owner identity in Kratos
-  const identityRaw = await createKratosIdentity({
-    email: ownerEmail,
-    tenantId,
-    roles: ["platform.admin"],
-  })
+      // 4️⃣ Ensure Keto relation (idempotent by design)
+      await addUserToTenantRelation(
+        tenant.id,
+        identityId,
+        "platform.admin"
+      );
 
-  const identity = identityRaw as KratosIdentity   // 👈 FIX
+      tenants.push(tenant);
+    }
 
-  // 3️⃣ Create Keto relation tuple  
-  await addUserToTenant(tenantId, identity.id)
-
-  // 4️⃣ Call Keto bootstrap service
-  await fetch("http://localhost:5001/bootstrap", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      tenantId,
-      ownerIdentityId: identity.id
-    })
-  })
-
-  return {
-    tenantId,
-    ownerIdentityId: identity.id,
-  }
+    return tenants;
+  });
 }

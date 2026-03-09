@@ -14,7 +14,7 @@ export const createWelcomeRoute: RouteCreator =
     res.locals.projectName = "Welcome to Ory"
 
     const { frontend } = createHelpers(req, res)
-    const session = req.session
+    const session = (req as any).session
     const { return_to } = req.query
 
     // Create a logout URL

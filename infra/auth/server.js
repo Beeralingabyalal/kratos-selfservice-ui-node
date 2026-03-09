@@ -22,7 +22,7 @@ app.get("/jwt", async (req, res) => {
 
   try {
     const { data } = await axios.get(
-      `${KRATOS_PUBLIC_URL}/sessions/whoami`,
+      `${process.env.KRATOS_PUBLIC_URL}/sessions/whoami`,
       {
         headers: {
           "X-Session-Token": sessionToken
@@ -31,13 +31,10 @@ app.get("/jwt", async (req, res) => {
     );
 
     const userId = data.identity.id;
-    const tenants = data.identity.traits.tenant_id; // ARRAY ✅
     const roles = data.identity.traits.roles || [];
 
-    console.log("JWT_SECRET USED TO SIGN:", process.env.JWT_SECRET);
-
     const token = jwt.sign(
-      { userId, tenants, roles },
+      { userId, roles },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );

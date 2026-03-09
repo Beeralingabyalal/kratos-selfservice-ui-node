@@ -9,42 +9,43 @@ const KETO_ADMIN_URL =
 
 /**
  * POST /bootstrap/tenants
- * Body:
- * {
- *   "userId": "kratos-user-id",
- *   "tenants": ["t1013", "t1014", "t1015"]
- * }
  */
 app.post("/bootstrap/tenants", async (req, res) => {
-  const { userId, tenants } = req.body;
+  const { userId, tenants, role } = req.body;
 
   if (!userId || !Array.isArray(tenants) || tenants.length === 0) {
     return res.status(400).json({
-      error: "userId and tenants[] are required"
+      error: "userId and tenants[] are required",
     });
   }
+
+  const relation = role || "platform.user";
 
   try {
     for (const tenantId of tenants) {
       await axios.put(`${KETO_ADMIN_URL}/admin/relation-tuples`, {
         namespace: "tenant",
         object: tenantId,
-        relation: "access",
-        subject_id: userId
+        relation,
+        subject_id: userId,
       });
     }
 
-    console.log(":white_check_mark: Multiple tenants created", { userId, tenants });
-
     return res.status(201).json({
-      message: "Tenants access granted",
+      message: "Tenant access granted",
       userId,
-      tenants
+      tenants,
+      relation,
     });
-  } catch (err) {
-    console.error("Keto error:", err.response?.data || err.message);
+
+  } catch (err: any) {
+    console.error(
+      "Keto error:",
+      err?.response?.data || err?.message || err
+    );
+
     return res.status(500).json({
-      error: "Failed to create tenant relations"
+      error: "Failed to create tenant relations",
     });
   }
 });

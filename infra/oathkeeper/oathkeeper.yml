@@ -6,7 +6,7 @@ serve:
 
 access_rules:
   repositories:
-    - file:///etc/oathkeeper/rules
+    - file:///etc/rules/access-rules.json
 
 authenticators:
   cookie_session:

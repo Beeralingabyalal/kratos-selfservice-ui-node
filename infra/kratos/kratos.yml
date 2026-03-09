@@ -17,8 +17,12 @@ courier:
     connection_uri: smtp://mailhog:1025
 
 identity:
+  default_schema_id: scansure_v1
   schemas:
-    - id: default
+    - id: default 
+      url: file:///etc/config/kratos/identity.schema.scansure.json
+
+    - id: scansure_v1
       url: file:///etc/config/kratos/identity.schema.scansure.json
 
 selfservice:

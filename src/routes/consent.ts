@@ -21,7 +21,7 @@ const extractSession = (
     id_token: {},
   }
 
-  const identity = req.session?.identity
+  const identity = (req as any).session?.identity
   if (!identity) {
     return session
   }

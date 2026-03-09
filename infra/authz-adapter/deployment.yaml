@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authz-stack
+  namespace: authz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authz
+  template:
+    metadata:
+      labels:
+        app: authz
+    spec:
+      containers:
+        - name: envoy
+          image: envoyproxy/envoy:v1.29-latest
+          args: ["-c", "/etc/envoy/envoy-config.yaml"]
+          ports:
+            - containerPort: 8443
+          volumeMounts:
+            - name: envoy-tls
+              mountPath: /etc/certs
+            - name: envoy-config
+              mountPath: /etc/envoy
+
+        - name: adapter
+          image: authz-adapter:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+
+      volumes:
+        - name: envoy-tls
+          secret:
+            secretName: envoy-tls
+
+        - name: envoy-config
+          configMap:
+            name: envoy-config

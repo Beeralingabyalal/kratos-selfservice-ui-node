@@ -1,0 +1,24 @@
+[
+  {
+    "id": "tenant-admin-check",
+    "match": {
+      "url": "<http|https>://<.*>/tenant/<.*>",
+      "methods": ["GET","POST"]
+    },
+    "authenticators": [
+      { "handler": "anonymous" }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      { "handler": "noop" }
+    ],
+    "errors": [
+      { "handler": "json" }
+    ],
+    "upstream": {
+      "url": "http://httpbin.org/anything"
+    }
+  }
+]

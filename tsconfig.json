@@ -6,11 +6,12 @@
     "module": "commonjs",
     "lib": ["es2019", "dom"],
     "outDir": "./lib",
-    "rootDir": "./src",
+    "rootDir": ".",
     "strict": true,
-    "typeRoots": ["./types"],
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["node", "jest"]
   },
+  "include": ["src", "test"],
   "exclude": ["contrib"]
 }

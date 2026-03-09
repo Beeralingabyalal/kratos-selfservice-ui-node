@@ -5,8 +5,10 @@ WORKDIR /app
 COPY package.json .
 RUN npm install
 
-COPY src ./src
+COPY . .
 
-EXPOSE 7000
+RUN npm run build
 
-CMD ["npm", "start"]
+EXPOSE 3000
+
+CMD ["node", "dist/server.js"]

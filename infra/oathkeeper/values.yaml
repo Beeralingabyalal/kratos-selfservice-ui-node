@@ -1,0 +1,32 @@
+deployment:
+  startupProbe:
+    httpGet:
+      path: /health/alive
+      port: 4456
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+  readinessProbe:
+    httpGet:
+      path: /health/alive
+      port: 4456
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+oathkeeper:
+  config:
+    access_rules:
+      repositories:
+        - file:///etc/rules/access-rules.json
+
+    authenticators:
+      anonymous:
+        enabled: true
+
+    authorizers:
+      allow:
+        enabled: true
+
+    mutators:
+      noop:
+        enabled: true

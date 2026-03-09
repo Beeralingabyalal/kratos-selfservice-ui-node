@@ -1,14 +1,21 @@
-import { Router, Request, Response } from "express"
+import { Router } from "express";
+import requireAdmin from "../lib/requireAdmin.audit";
+import { getUserTenants } from "../services/tenantAccess.service";
 
-const router = Router()
+const router = Router();
 
-router.get("/api/tenant/:tenantId", (req: Request, res: Response) => {
-  const tenantId = req.params.tenantId
+router.get(
+  "/api/my/tenants",
+  requireAdmin(async (req: any, res) => {
+    const identityId = req.actor.id;
 
-  res.json({
-    message: "Tenant API working",
-    tenantId: tenantId
+    const tenants = await getUserTenants(identityId);
+
+    res.json({
+      count: tenants.length,
+      tenants,
+    });
   })
-})
+);
 
-export default router
+export default router;

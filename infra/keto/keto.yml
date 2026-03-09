@@ -1,6 +1,6 @@
 version: v0.11.0
 
-dsn: memory
+dsn: postgres://kratos:secret@postgres:5432/keto?sslmode=disable
 
 serve:
   read:
@@ -11,4 +11,8 @@ serve:
     port: 4467
 
 namespaces:
-  - name: tenant
+  - id: 0
+    name: tenant
+
+log:
+  level: debug

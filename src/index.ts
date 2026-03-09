@@ -1,5 +1,16 @@
 // Copyright © 2022 Ory Corp
 // SPDX-License-Identifier: Apache-2.0
+import path from "path";
+import dotenv from "dotenv";
+
+// load .env from project root
+dotenv.config({
+  path: path.join(process.cwd(), ".env"),
+});
+
+console.log("ENV FILE:", path.join(process.cwd(), ".env"));
+console.log("ENV JWT_SECRET =", process.env.JWT_SECRET);
+
 import {
   addFavicon,
   defaultConfig,
@@ -7,6 +18,9 @@ import {
   handlebarsHelpers,
 } from "./pkg"
 import { logger, middleware as middlewareLogger } from "./pkg/logger"
+import tenantResourceRouter from "./routes/tenantResource";
+import tenantAccessCheckRouter from "./routes/tenantAccessCheck";
+
 import {
   register404Route,
   register500Route,
@@ -25,7 +39,13 @@ import {
 } from "./routes"
 import { registerAdminRoutes } from "./routes/admin"
 import tenantRouter from "./routes/tenant"
+import adminIdentityRouter from "./routes/admin.identity";
+import adminIdentityUpdate from "./routes/admin.identity.update"
 import { registerSessionExportRoute } from "./routes/sessionExport"
+import adminIdentityList from "./routes/admin.identity.list";
+import adminIdentityDelete from "./routes/admin.identity.delete";
+import adminTenantDelete from "./routes/admin.tenant.delete"
+import protectedRouter from "./routes/protected"
 
 import { csrfErrorHandler } from "./routes/csrfError"
 import bodyParser from "body-parser"
@@ -74,6 +94,7 @@ app.use(middlewareLogger)
 app.use(cookieParser(process.env.COOKIE_SECRET || ""))
 app.use(addFavicon(defaultConfig))
 app.use(detectLanguage)
+app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }))
 app.set("view engine", "hbs")
 
@@ -88,6 +109,8 @@ app.engine(
   }),
 )
 
+router.use(protectedRouter)
+
 registerStaticRoutes(router)
 registerHealthRoute(router)
 registerLoginRoute(router)
@@ -100,8 +123,14 @@ registerWelcomeRoute(router)
 registerErrorRoute(router)
 registerAdminRoutes(router)
 registerSessionExportRoute(router)
+router.use(adminTenantDelete);
 router.use(tenantRouter)
-
+router.use(adminIdentityRouter)
+router.use(adminIdentityList);
+router.use(adminIdentityDelete);
+router.use(tenantResourceRouter);
+router.use(tenantAccessCheckRouter);
+router.use(adminIdentityUpdate);
 
 // all routes registered under the /consent path are protected by CSRF
 router.use("/consent", doubleCsrfProtection)
@@ -160,3 +189,5 @@ if (
     app.listen(port, listener("http"))
   }
 }
+
+export default app;

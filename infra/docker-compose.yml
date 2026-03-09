@@ -89,7 +89,7 @@ services:
     build: ./authz-adapter
     container_name: authz_adapter
     ports:
-      - "7000:7000"
+      - "3001:3001"
     environment:
       - KETO_READ_URL=http://keto:4466
     depends_on:
@@ -102,9 +102,11 @@ services:
       - "8080:8080"
     volumes:
       - ./authz-adapter/envoy-config.yaml:/etc/envoy/envoy.yaml:ro
+      - ./certs:/etc/certs:ro
     command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]
     depends_on:
       - kratos
+
 
 volumes:
   postgres_data:

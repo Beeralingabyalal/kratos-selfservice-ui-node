@@ -1,31 +1,43 @@
-import { RouteRegistrator } from "../pkg"
-import requireAdmin from "../lib/requireAdmin.audit"
-import { createTenant } from "../services/tenantService"
-import express from "express"
+import { RouteRegistrator } from "../pkg";
+import { requireJwt } from "../lib/requireJwt";
+import { requireAdminJwt } from "../lib/requireAdminJwt";
+import { createMultipleTenants } from "../services/tenantService";
+import express from "express";
 
 export const registerAdminRoutes: RouteRegistrator = (router) => {
   router.post(
-    "/api/admin/create-tenant",
+    "/api/admin/tenants/bulk",
     express.json(),
-    requireAdmin(async (req: any, res: any) => {
-      const { tenantName, ownerEmail } = req.body
-
-      if (!tenantName || !ownerEmail) {
-        return res.status(400).json({
-          error: "tenantName and ownerEmail required",
-        })
-      }
-
+    requireJwt,
+    requireAdminJwt,
+    async (req: any, res) => {
       try {
-        const result = await createTenant(tenantName, ownerEmail)
-        return res.json({
-          message: "Tenant created successfully",
-          tenantId: result.tenantId,
-          ownerIdentityId: result.ownerIdentityId,
-        })
+        const { tenantNames } = req.body;
+
+        if (!Array.isArray(tenantNames) || tenantNames.length === 0) {
+          return res.status(400).json({
+            error: "tenantNames array is required",
+          });
+        }
+
+        const identityId = req.jwt.sub;
+
+        const tenants = await createMultipleTenants(
+          tenantNames,
+          identityId
+        );
+
+        res.json({
+          message: "Tenant onboarding completed",
+          count: tenants.length,
+          tenants,
+        });
       } catch (err: any) {
-        return res.status(500).json({ error: err.message })
+        console.error(err);
+        res.status(500).json({
+          error: "Tenant onboarding failed",
+        });
       }
-    }),
-  )
-}
+    }
+  );
+};

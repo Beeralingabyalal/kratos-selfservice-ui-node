@@ -20,7 +20,7 @@
       }
     },
     "mutators": [
-      { "handler": "no_op" }
+      { "handler": "noop" }
     ]
   }
 ]

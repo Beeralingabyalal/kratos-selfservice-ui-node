@@ -1,8 +1,8 @@
-import { Session } from "@ory/client"
+import "express-session";
+import { Session as KratosSession } from "@ory/client";
 
-declare module "express" {
-  export interface Request {
-    session?: Session
-    csrfToken?: (overwrite?: boolean) => string
+declare module "express-session" {
+  interface SessionData {
+    identity?: KratosSession["identity"];
   }
 }
