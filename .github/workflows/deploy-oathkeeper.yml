@@ -2,8 +2,8 @@ name: Oathkeeper Validation
 
 on:
   push:
-    paths:
-      - "infra/oathkeeper/**"
+    branches:
+      - main
 
 jobs:
   validate:
