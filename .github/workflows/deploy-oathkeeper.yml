@@ -1,4 +1,4 @@
-name: Deploy Oathkeeper
+name: Oathkeeper Validation
 
 on:
   push:
@@ -6,31 +6,25 @@ on:
       - "infra/oathkeeper/**"
 
 jobs:
-  deploy:
+  validate:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v4
+      - name: Install jq
+        run: sudo apt-get install jq -y
 
-      - name: Install Helm
-        uses: azure/setup-helm@v4
-
-      - name: Deploy Oathkeeper
+      - name: Validate access rules JSON
         run: |
-          helm upgrade --install oathkeeper ory/oathkeeper \
-          -n oathkeeper \
-          -f infra/oathkeeper/values.yaml
+          jq . infra/oathkeeper/access-rules.json
 
-      - name: Wait for deployment
+      - name: Validate rules folder
         run: |
-          kubectl rollout status deployment/oathkeeper -n oathkeeper
+          ls infra/oathkeeper
+          ls infra/oathkeeper/rules
 
-      - name: Smoke test
+      - name: Check Oathkeeper config
         run: |
-          kubectl port-forward -n oathkeeper svc/oathkeeper-api 4456:4456 &
-          sleep 10
-          curl -f http://localhost:4456/health/ready
+          cat infra/oathkeeper/oathkeeper.yml
