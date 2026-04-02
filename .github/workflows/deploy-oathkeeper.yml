@@ -1,42 +1,24 @@
-
----
-
-# ✅ Correct full file (copy this EXACTLY)
-
-Replace your entire file with this:
-
-:::writing{variant="standard" id="ci006"}
 name: Validate Oathkeeper Setup
 
 on:
-  push:
-    branches:
-      - main
+push:
+branches:
+- main
 
 jobs:
-  validate:
-    runs-on: ubuntu-latest
+validate:
+runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+```
+steps:
+  - name: Checkout repo
+    uses: actions/checkout@v4
 
-      - name: Validate rules JSON
-        run: |
-          jq . infra/charts/oathkeeper/rules/tenant-isolation.json
+  - name: Validate rules JSON
+    run: |
+      jq . infra/charts/oathkeeper/rules/tenant-isolation.json
 
-      - name: Lint Helm chart
-        run: |
-          helm lint infra/charts/oathkeeper
-:::
-
----
-
-# ▶️ NEXT STEP
-
-Run:
-
-```bash
-git add .
-git commit -m "fix yaml syntax error in CI"
-git push
+  - name: Lint Helm chart
+    run: |
+      helm lint infra/charts/oathkeeper
+```
