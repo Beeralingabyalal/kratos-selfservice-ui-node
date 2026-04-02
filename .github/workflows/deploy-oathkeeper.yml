@@ -1,9 +1,9 @@
 name: Validate Oathkeeper Setup
 
 on:
-push:
-branches:
-- main
+  push:
+    branches:
+      - main
 
 jobs:
 validate:
