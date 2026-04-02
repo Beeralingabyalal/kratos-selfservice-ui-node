@@ -13,6 +13,8 @@ spec:
       labels:
         app: authz
     spec:
+      serviceAccountName: default
+
       containers:
         - name: envoy
           image: envoyproxy/envoy:v1.29-latest
@@ -31,6 +33,27 @@ spec:
           ports:
             - containerPort: 3000
 
+          env:
+            - name: KETO_ADMIN_URL
+              value: "http://172.30.176.1:4466"
+              
+            # - name: KRATOS_ADMIN_TOKEN
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: kratos-admin-token
+            #       key: admin_token
+
+            # - name: KETO_ADMIN_TOKEN
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: keto-admin-token
+            #       key: admin_token
+
+          # volumeMounts:
+          #   - name: vault-secrets
+          #     mountPath: "/mnt/secrets"
+          #     readOnly: true
+
       volumes:
         - name: envoy-tls
           secret:
@@ -39,3 +62,10 @@ spec:
         - name: envoy-config
           configMap:
             name: envoy-config
+
+        # - name: vault-secrets
+        #   csi:
+        #     driver: secrets-store.csi.k8s.io
+        #     readOnly: true
+        #     volumeAttributes:
+        #       secretProviderClass: "scansure-vault-secret"

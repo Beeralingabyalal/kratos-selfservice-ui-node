@@ -2,11 +2,11 @@
   {
     "id": "tenant-rule",
     "match": {
-      "url": "<http|https>://*/api/tenant/<.*>",
+      "url": "<http|https>://<.*>/api/tenant/<.*>",
       "methods": ["GET", "POST", "PUT", "PATCH", "DELETE"]
     },
     "upstream": {
-      "url": "http://kratos-selfservice-ui-node:3000",
+      "url": "http://authz_adapter:3001",
       "preserve_host": true
     },
     "authenticators": [
@@ -15,8 +15,9 @@
     "authorizer": {
       "handler": "keto_engine_acp_ory",
       "config": {
-        "required_action": "access",
-        "required_resource": "tenant:<.Object>"
+        "base_url": "http://keto:4466",
+        "required_action": "admin",
+        "required_resource": "tenant"
       }
     },
     "mutators": [

@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: vault-csi-provider
+  namespace: kube-system
+  labels:
+    app: vault-csi-provider
+spec:
+  selector:
+    matchLabels:
+      app: vault-csi-provider
+  template:
+    metadata:
+      labels:
+        app: vault-csi-provider
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: vault-csi-provider
+        image: hashicorp/vault-csi-provider:1.3.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - "--endpoint=/provider/vault.sock"
+        volumeMounts:
+        - name: provider-dir
+          mountPath: /provider
+      volumes:
+      - name: provider-dir
+        hostPath:
+          path: /etc/kubernetes/secrets-store-csi-providers
+          type: DirectoryOrCreate

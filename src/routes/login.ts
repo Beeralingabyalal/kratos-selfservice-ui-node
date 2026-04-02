@@ -1,5 +1,6 @@
 // Copyright © 2022 Ory Corp
 // SPDX-License-Identifier: Apache-2.0
+
 import {
   defaultConfig,
   getUrlForFlow,
@@ -9,10 +10,28 @@ import {
   RouteCreator,
   RouteRegistrator,
 } from "../pkg"
+
 import { LoginFlow } from "@ory/client"
 import { UserAuthCard } from "@ory/elements-markup"
 import path from "path"
 import { URLSearchParams } from "url"
+import rateLimit from "express-rate-limit"
+// import router from "./tenant"
+
+/* ---------------- RATE LIMITER ---------------- */
+
+// const loginLimiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 100, // max login attempts
+//   standardHeaders: true,
+//   legacyHeaders: false,
+//   skip: (req) => Boolean(req.query.flow),
+//   handler: (req, res) => {
+//     res.status(429).send("Too many login attempts. Try again later.")
+//   },
+// })
+
+/* ---------------- LOGIN ROUTE ---------------- */
 
 export const createLoginRoute: RouteCreator =
   (createHelpers) => async (req, res, next) => {
@@ -28,6 +47,7 @@ export const createLoginRoute: RouteCreator =
       login_challenge,
       identity_schema,
     } = req.query
+
     const { frontend, kratosBrowserUrl, logoUrl, extraPartials } =
       createHelpers(req, res)
 
@@ -43,14 +63,13 @@ export const createLoginRoute: RouteCreator =
       logger.debug("login_challenge found in URL query: ", { query: req.query })
       initFlowQuery.append("login_challenge", login_challenge)
     }
+
     if (isQuerySet(identity_schema)) {
       initFlowQuery.append("identity_schema", identity_schema)
     }
 
     const initFlowUrl = getUrlForFlow(kratosBrowserUrl, "login", initFlowQuery)
 
-    // The flow is used to identify the settings and registration flow and
-    // return data like the csrf_token and so on.
     if (!isQuerySet(flow)) {
       logger.debug("No flow ID found in URL query initializing login flow", {
         query: req.query,
@@ -59,9 +78,6 @@ export const createLoginRoute: RouteCreator =
       return
     }
 
-    // It is probably a bit strange to have a logout URL here, however this screen
-    // is also used for 2FA flows. If something goes wrong there, we probably want
-    // to give the user the option to sign out!
     const getLogoutUrl = async (loginFlow: LoginFlow) => {
       let logoutUrl = ""
       try {
@@ -79,31 +95,23 @@ export const createLoginRoute: RouteCreator =
     }
 
     const redirectToVerificationFlow = (loginFlow: LoginFlow) => {
-      // we will create a new verification flow and redirect the user to the verification page
       frontend
         .createBrowserVerificationFlow({
           returnTo:
             (return_to && return_to.toString()) || loginFlow.return_to || "",
         })
         .then(({ headers, data: verificationFlow }) => {
-          // we need the csrf cookie from the verification flow
           if (headers["set-cookie"]) {
             res.setHeader("set-cookie", headers["set-cookie"])
           }
-          // encode the verification flow id in the query parameters
+
           const verificationParameters = new URLSearchParams({
             flow: verificationFlow.id,
             message: JSON.stringify(loginFlow.ui.messages),
           })
 
-          const baseUrl = req.path.split("/")
-          // get rid of the last part of the path (e.g. "login")
-          baseUrl.pop()
-
-          // redirect to the verification page with the custom message
           res.redirect(
             303,
-            // join the base url with the verification path
             path.join(
               req.baseUrl,
               "verification?" + verificationParameters.toString(),
@@ -122,9 +130,6 @@ export const createLoginRoute: RouteCreator =
                   (return_to && return_to.toString()) ||
                   loginFlow.return_to ||
                   "",
-                ...(loginFlow.identity_schema && {
-                  identity_schema: loginFlow.identity_schema,
-                }),
               }),
             ),
           ),
@@ -135,31 +140,23 @@ export const createLoginRoute: RouteCreator =
       .getLoginFlow({ id: flow, cookie: req.header("cookie") })
       .then(async ({ data: flow }) => {
         if (flow.ui.messages && flow.ui.messages.length > 0) {
-          // the login requires that the user verifies their email address before logging in
           if (flow.ui.messages.some(({ id }) => id === 4000010)) {
-            // we will create a new verification flow and redirect the user to the verification page
             return redirectToVerificationFlow(flow)
           }
         }
 
-        // Render the data using a view (e.g. Jade Template):
         const initRegistrationQuery = new URLSearchParams({
           return_to:
             (return_to && return_to.toString()) || flow.return_to || "",
-          ...(flow.identity_schema && {
-            identity_schema: flow.identity_schema.toString(),
-          }),
-          ...(flow.oauth2_login_request?.challenge && {
-            login_challenge: flow.oauth2_login_request.challenge,
-          }),
         })
 
-        let initRecoveryUrl = ""
         const initRegistrationUrl = getUrlForFlow(
           kratosBrowserUrl,
           "registration",
           initRegistrationQuery,
         )
+
+        let initRecoveryUrl = ""
         if (!flow.refresh) {
           initRecoveryUrl = getUrlForFlow(
             kratosBrowserUrl,
@@ -199,9 +196,12 @@ export const createLoginRoute: RouteCreator =
       .catch(redirectOnSoftError(res, next, initFlowUrl))
   }
 
+/* ---------------- REGISTER ROUTE ---------------- */
+
 export const registerLoginRoute: RouteRegistrator = (
-  app,
+  router,
   createHelpers = defaultConfig,
 ) => {
-  app.get("/login", createLoginRoute(createHelpers))
+  // router.use("/login", loginLimiter)
+  router.get("/login", createLoginRoute(createHelpers))
 }

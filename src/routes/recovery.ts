@@ -21,11 +21,7 @@ export const createRecoveryRoute: RouteCreator =
       createHelpers(req, res)
     res.locals.faviconUrl = faviconUrl
     res.locals.faviconType = faviconType
-    const initFlowUrl = getUrlForFlow(
-      kratosBrowserUrl,
-      "recovery",
-      new URLSearchParams({ return_to: return_to.toString() }),
-    )
+    const initFlowUrl = `${kratosBrowserUrl}/self-service/recovery/browser`
 
     // The flow is used to identify the settings and registration flow and
     // return data like the csrf_token and so on.

@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: authz
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authz-stack
+  namespace: authz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authz-stack
+  template:
+    metadata:
+      labels:
+        app: authz-stack
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: envoy
+        image: envoyproxy/envoy:v1.30-latest
+        ports:
+        - containerPort: 8080
+      - name: adapter
+        image: node:18
+        command: ["sleep"]
+        args: ["3600"]
+        volumeMounts:
+        - name: secrets-store
+          mountPath: "/mnt/secrets"
+          readOnly: true
+      volumes:
+      - name: secrets-store
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "vault-secrets"

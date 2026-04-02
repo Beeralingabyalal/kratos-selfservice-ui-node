@@ -5,21 +5,38 @@ serve:
     port: 4456
 
 access_rules:
+  matching_strategy: regexp
   repositories:
-    - file:///etc/rules/access-rules.json
+    - file:///etc/access-rules.json
+
+log:
+  level: debug
+
 
 authenticators:
   cookie_session:
     enabled: true
     config:
       check_session_url: http://kratos:4433/sessions/whoami
+      subject_from: identity.id
+      extra_from: "@this"
+      # forward_http_headers: 
+      #   - Cookie 
 
 authorizers:
-  keto_engine_acp_ory:
-    enabled: false        # MUST BE FALSE
-    config:
-      base_url: http://keto:4466
-
-mutators:
-  noop:
+  allow:
     enabled: true
+#     config:
+#       remote: http://authz_adapter:3001/check
+
+    
+mutators:
+  header:
+    enabled: true
+    config:
+      headers:
+        x-user: "{{ print .Subject }}"
+ 
+errors:
+  fallback:
+    - json

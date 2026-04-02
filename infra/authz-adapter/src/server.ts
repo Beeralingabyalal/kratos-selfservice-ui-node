@@ -16,30 +16,82 @@ function extractCN(header?: string): string | null {
   return match ? match[1].trim() : null
 }
 
-app.post("/check", async (req: Request, res: Response) => {
+app.all("/check", async (req: Request, res: Response) => {
   try {
+    // 🔹 1. Extract subject (mTLS OR Oathkeeper)
     const xfcc = req.headers["x-forwarded-client-cert"] as string | undefined
-    const clientCN = extractCN(xfcc)
 
-    logger.info({ xfcc, clientCN }, "Extracted client certificate CN")
+    let subject: string | null = null
+    let source = ""
 
-    if (!clientCN) {
+    // 🔐 mTLS flow
+    if (xfcc) {
+      const cn = extractCN(xfcc)
+      if (cn) {
+        subject = `service:${cn}`
+        source = "mtls"
+      }
+    }
+
+    // 👤 Oathkeeper flow
+    if (!subject) {
+      const user =
+        (req.headers["x-subject"] as string) ||
+        (req.headers["x-user"] as string)
+
+      if (user) {
+        subject = `user:${user}`
+        source = "session"
+      }
+    }
+
+    if (!subject) {
+      logger.warn({ msg: "No subject found" })
       return res.status(403).json({ allowed: false })
     }
 
-    const { namespace, object, relation } = req.body
+    // 🔹 2. Extract tenant (object)
+    let object = req.body.object
 
-    const response = await axios.post(
-      `${KETO_ADMIN_URL}/relation-tuples/check`,
-      {
+    if (!object) {
+      const forwardedUri =
+        (req.headers["x-forwarded-uri"] as string) || req.url
+
+      const parts = forwardedUri.split("/")
+      if (parts.length >= 4){
+        object = parts[3] // /api/tenant/<tenantId>
+      }else if(parts.length >= 2){
+        object = parts[1]
+      }
+    }
+
+    const namespace = req.body.namespace || "tenant"
+
+    // 🔹 3. Relation (role)
+    const relation = req.body.relation || "platform.admin"
+
+    // 🔥 4. Single Keto check (NO Kratos call)
+    const response = await axios.get(`${KETO_ADMIN_URL}/check`, {
+      params: {
         namespace,
         object,
         relation,
-        subject_id: clientCN
-      }
-    )
+        subject_id: subject,
+      },
+    })
 
-    return res.json({ allowed: response.data.allowed })
+    const allowed = response.data.allowed
+
+    // 📊 Structured audit log
+    logger.info({
+      actor: subject,
+      object,
+      relation,
+      result: allowed ? "allow" : "deny",
+      source,
+    })
+
+    return res.json({ allowed })
 
   } catch (err) {
     logger.error(err)
@@ -47,6 +99,10 @@ app.post("/check", async (req: Request, res: Response) => {
   }
 })
 
-app.listen(3000, () => {
-  console.log("AuthZ Adapter running on port 3000")
-})
+export default app
+
+if (require.main === module) {
+  app.listen(3001, () => {
+    console.log("AuthZ Adapter running on port 3001")
+  })
+}

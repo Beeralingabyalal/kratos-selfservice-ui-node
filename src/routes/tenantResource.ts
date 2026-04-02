@@ -1,6 +1,5 @@
 import express from "express";
-import { requireJwt } from "../lib/requireJwt";
-import { requireTenantAccess } from "../lib/requireTenantAccess";
+import requireAdminAudit from "../lib/requireAdmin.audit";
 
 const router = express.Router();
 
@@ -9,16 +8,16 @@ const router = express.Router();
  */
 router.get(
   "/api/tenant/:tenantId/resource",
-  requireJwt,
-  requireTenantAccess("platform.admin", [
-    "platform.admin",
-    "tenant.admin",
-    "tenant.user",
-  ]),
-  async (req, res) => {
+  requireAdminAudit(async (req, res) => {
     const { tenantId } = req.params;
+    const actor = (req as any).actor;
 
-    res.json({
+    // 🔥 Tenant validation
+    if (!actor.tenant_id || actor.tenant_id !== tenantId) {
+      return res.status(403).json({ error: "Tenant access denied" });
+    }
+
+    return res.json({
       message: "Tenant protected resource access granted",
       tenantId,
       data: {
@@ -27,7 +26,7 @@ router.get(
         status: "active",
       },
     });
-  }
+  })
 );
 
 /**
@@ -35,16 +34,25 @@ router.get(
  */
 router.post(
   "/api/tenant/:tenantId/admin-action",
-  requireJwt,
-  requireTenantAccess("platform.admin", [
-    "platform.admin",
-    "tenant.admin",
-  ]),
-  async (req, res) => {
-    res.json({
+  requireAdminAudit(async (req, res) => {
+    const { tenantId } = req.params;
+    const actor = (req as any).actor;
+
+    // 🔥 Tenant check
+    if (!actor.tenant_id || actor.tenant_id !== tenantId) {
+      return res.status(403).json({ error: "Tenant access denied" });
+    }
+
+    // 🔥 Role check
+    if (!actor.roles.includes("platform.admin")) {
+      return res.status(403).json({ error: "Admin role required" });
+    }
+
+    return res.json({
       message: "Tenant admin action allowed",
+      tenantId,
     });
-  }
+  })
 );
 
 export default router;

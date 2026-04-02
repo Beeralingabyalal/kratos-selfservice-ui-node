@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otlp-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otlp-collector
+  template:
+    metadata:
+      labels:
+        app: otlp-collector
+    spec:
+      containers:
+        - name: otlp-collector
+          image: otel/opentelemetry-collector:latest
+          args: ["--config=/conf/collector-config.yaml"]
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+          ports:
+            - containerPort: 4317
+            - containerPort: 4318
+      volumes:
+        - name: config
+          configMap:
+            name: otlp-config

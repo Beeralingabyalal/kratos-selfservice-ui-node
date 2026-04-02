@@ -1,5 +1,7 @@
 import { withTransaction } from "../lib/db";
 import { addUserToTenantRelation } from "./tenantAccess.service";
+import { pool } from "../lib/db"; // or your db client
+
 
 export type TenantRow = {
   id: string;
@@ -57,4 +59,13 @@ export async function createMultipleTenants(
 
     return tenants;
   });
+}
+
+export async function getAllTenants() {
+  const result = await pool.query(`
+    SELECT id as "tenantId", name as "tenantName"
+    FROM tenants
+  `);
+
+  return result.rows;
 }

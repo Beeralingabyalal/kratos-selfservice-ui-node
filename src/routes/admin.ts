@@ -2,6 +2,7 @@ import { RouteRegistrator } from "../pkg";
 import { requireJwt } from "../lib/requireJwt";
 import { requireAdminJwt } from "../lib/requireAdminJwt";
 import { createMultipleTenants } from "../services/tenantService";
+import { getAllTenants } from "../services/tenantService";
 import express from "express";
 
 export const registerAdminRoutes: RouteRegistrator = (router) => {
@@ -40,4 +41,25 @@ export const registerAdminRoutes: RouteRegistrator = (router) => {
       }
     }
   );
+
+  router.get(
+  "/api/admin/tenants",
+  requireJwt,
+  requireAdminJwt,
+  async (req: any, res) => {
+    try {
+      const tenants = await getAllTenants();
+
+      res.json({
+        count: tenants.length,
+        tenants,
+      });
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({
+        error: "Failed to fetch tenants",
+      });
+    }
+  }
+);
 };

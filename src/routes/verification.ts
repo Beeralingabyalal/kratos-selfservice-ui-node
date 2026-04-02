@@ -22,7 +22,7 @@ export const createVerificationRoute: RouteCreator =
     const initFlowUrl = getUrlForFlow(
       kratosBrowserUrl,
       "verification",
-      new URLSearchParams({ return_to: return_to.toString() }),
+      new URLSearchParams({ return_to: return_to?.toString() || "http://localhost:3000/verification" }),
     )
 
     // The flow is used to identify the settings and registration flow and

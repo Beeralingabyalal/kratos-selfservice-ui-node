@@ -13,8 +13,9 @@ serve:
     base_url: http://localhost:4434/
 
 courier:
+  delivery_strategy: smtp
   smtp:
-    connection_uri: smtp://mailhog:1025
+    connection_uri: smtp://mailhog:1025/?skip_ssl_verify=true&disable_starttls=true
 
 identity:
   default_schema_id: scansure_v1
@@ -31,6 +32,10 @@ selfservice:
     - http://localhost:3000
     - http://localhost:3001
 
+  methods:
+   password:
+    enabled: true
+
   flows:
     error:
       ui_url: http://localhost:3000/error
@@ -38,6 +43,10 @@ selfservice:
     login:
       ui_url: http://localhost:3000/login
       lifespan: 1h
+      after:
+        password:
+          hooks:
+            - hook: require_verified_address
 
     registration:
       ui_url: http://localhost:3000/registration
@@ -51,10 +60,12 @@ selfservice:
     recovery:
       ui_url: http://localhost:3000/recovery
       lifespan: 1h
+      enabled: true
 
     verification:
       ui_url: http://localhost:3000/verification
       lifespan: 1h
+      enabled: true
 
 secrets:
   cookie:
