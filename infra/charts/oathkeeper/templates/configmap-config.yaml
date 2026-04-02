@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oathkeeper-config
+data:
+  config.yml: |
+{{ .Files.Get "oathkeeper/oathkeeper.yml" | indent 4 }}

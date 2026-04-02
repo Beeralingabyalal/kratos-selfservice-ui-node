@@ -1,0 +1,7 @@
+image:
+  repository: oryd/oathkeeper
+  tag: v0.40.6
+
+service:
+  port: 4455
+  apiPort: 4456

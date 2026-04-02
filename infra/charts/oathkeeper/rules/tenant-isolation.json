@@ -22,10 +22,10 @@
         "handler": "header",
         "config": {
           "headers": {
-            "x-user": "{{ print .Subject }}",
-            "x-email": "{{ print .Extra.identity.traits.email }}",
-            "x-tenant": "{{ print .Extra.identity.traits.tenant_id }}",
-            "x-roles": "{{ print .Extra.identity.traits.roles }}"
+            "x-user": "{{`{{ print .Subject }}`}}",
+            "x-email": "{{`{{ print .Extra.identity.traits.email }}`}}",
+            "x-tenant": "{{`{{ print .Extra.identity.traits.tenant_id }}`}}",
+            "x-roles": "{{`{{ print .Extra.identity.traits.roles }}`}}"
           }
         }
       }

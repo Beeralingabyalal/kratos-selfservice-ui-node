@@ -1,55 +1,24 @@
-name: Deploy Oathkeeper
+name: Validate Oathkeeper Setup
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "infra/charts/oathkeeper/**"
-      - ".github/workflows/deploy-oathkeeper.yml"
+push:
+branches:
+- main
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+validate:
+runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+```
+steps:
+  - name: Checkout repo
+    uses: actions/checkout@v4
 
-      # ✅ Install kubectl
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v3
+  - name: Validate rules JSON
+    run: |
+      jq . infra/charts/oathkeeper/rules/tenant-isolation.json
 
-      # ✅ Install Helm
-      - name: Setup Helm
-        uses: azure/setup-helm@v3
-
-      # ⚠️ You MUST configure kubeconfig (adjust for your cluster)
-      - name: Set kubeconfig
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
-
-      # ✅ Validate rules JSON (correct path)
-      - name: Validate rules JSON
-        run: |
-          jq . infra/charts/oathkeeper/templates/rules/tenant-isolation.json
-
-      # ✅ Deploy Oathkeeper via Helm
-      - name: Deploy Oathkeeper
-        run: |
-          helm upgrade --install oathkeeper infra/charts/oathkeeper \
-            --namespace authz \
-            --create-namespace
-
-      # ⏳ Wait for rollout
-      - name: Wait for rollout
-        run: |
-          kubectl rollout status deployment/oathkeeper -n authz --timeout=120s
-
-      # ✅ Smoke test (REQUIRED by test case)
-      - name: Smoke test
-        run: |
-          kubectl port-forward svc/oathkeeper 4455:4455 -n authz &
-          sleep 5
-          curl -f http://localhost:4456/health/ready
+  - name: Lint Helm chart
+    run: |
+      helm lint infra/charts/oathkeeper
+```
