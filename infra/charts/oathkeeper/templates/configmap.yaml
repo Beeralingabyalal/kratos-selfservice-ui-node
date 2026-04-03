@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oathkeeper-config
+data:
+  config.yml: |
+    serve:
+      proxy:
+        port: 4455
+      api:
+        port: 4456
+
+    access_rules:
+      matching_strategy: regexp
+      repositories:
+        - file:///etc/access-rules.json
+
+    log:
+      level: debug
+
+    authenticators:
+      cookie_session:
+        enabled: true
+        config:
+          check_session_url: http://kratos:4433/sessions/whoami
+          subject_from: identity.id
+          extra_from: "@this"
+
+    authorizers:
+      allow:
+        enabled: true
+
+    mutators:
+      header:
+        enabled: true
+        config:
+          headers:
+            x-user: "{{`{{ print .Subject }}`}}"
+
+    errors:
+      fallback:
+        - json

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oathkeeper-rules
+data:
+  access-rules.json: |
+{{ .Files.Get "rules/tenant-isolation.json" | nindent 4 }}

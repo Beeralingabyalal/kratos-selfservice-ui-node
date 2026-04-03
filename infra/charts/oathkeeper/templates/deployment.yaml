@@ -2,32 +2,46 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: oathkeeper
+  labels:
+    app: oathkeeper
 spec:
   replicas: 1
+
   selector:
     matchLabels:
       app: oathkeeper
+
   template:
     metadata:
       labels:
         app: oathkeeper
+
     spec:
       containers:
         - name: oathkeeper
-          image: oryd/oathkeeper:v0.40.6
-          args: ["serve", "-c", "/etc/oathkeeper/config.yml"]
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ["oathkeeper", "serve", "-c", "/etc/config/oathkeeper.yml"]
+
           ports:
-            - containerPort: 4455
-            - containerPort: 4456
+            - name: proxy
+              containerPort: 4455
+            - name: api
+              containerPort: 4456
+
           volumeMounts:
-            - name: config
-              mountPath: /etc/oathkeeper
             - name: rules
-              mountPath: /etc/rules
+              mountPath: /etc/access-rules.json
+              subPath: access-rules.json
+
+            - name: config
+              mountPath: /etc/config/oathkeeper.yml
+              subPath: config.yml
+
       volumes:
+        - name: rules
+          configMap:
+            name: oathkeeper-rules
+
         - name: config
           configMap:
             name: oathkeeper-config
-        - name: rules
-          configMap: 
-            name: oathkeeper-rules

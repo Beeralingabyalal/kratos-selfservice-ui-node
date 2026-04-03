@@ -1,22 +1,32 @@
-name: Validate Oathkeeper Setup
+name: Deploy Oathkeeper
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  validate:
+  deploy:
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Validate rules JSON
-        run: |
-          jq . infra/charts/oathkeeper/rules/tenant-isolation.json
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
 
-      - name: Lint Helm chart
+      - name: Deploy Oathkeeper
         run: |
-          helm lint infra/charts/oathkeeper
+          helm upgrade --install oathkeeper ./infra/charts/oathkeeper
+
+      - name: Health Check
+        run: |
+          curl -f http://<your-domain>:4456/health/ready
+
+      - name: Rollback on Failure
+        if: failure()
+        run: |
+          helm rollback oathkeeper

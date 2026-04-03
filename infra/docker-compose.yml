@@ -80,8 +80,8 @@ services:
       - "4456:4456"
     volumes:
       - ./oathkeeper/oathkeeper.yml:/etc/oathkeeper/config.yml
-      # - ./oathkeeper/access-rules.json:/etc/access-rules.json
-      - ./infra/charts/oathkeeper/templates/rules:/etc/rules
+      - ./oathkeeper/access-rules.json:/etc/access-rules.json
+      # - ./infra/charts/oathkeeper/templates/rules:/etc/rules
     command: ["serve", "-c", "/etc/oathkeeper/config.yml"]
     extra_hosts:
       - "host.docker.internal:host-gateway"

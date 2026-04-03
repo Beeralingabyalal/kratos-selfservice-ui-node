@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: oathkeeper-rules
-data:
-  tenant-isolation.json: |
-{{ .Files.Get "rules/tenant-isolation.json" | indent 4 }}

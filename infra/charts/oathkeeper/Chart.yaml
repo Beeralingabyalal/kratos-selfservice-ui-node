@@ -1,5 +1,6 @@
 apiVersion: v2
 name: oathkeeper
-description: Oathkeeper Helm Chart
+description: Oathkeeper Helm Chart for ScanSure
+type: application
 version: 0.1.0
 appVersion: "0.40.6"

@@ -12,4 +12,3 @@ spec:
     - name: api
       port: 4456
       targetPort: 4456
-  type: ClusterIP
