@@ -14,7 +14,7 @@ spec:
       labels:
         app: vault-csi-provider
     spec:
-      serviceAccountName: default
+      serviceAccountName: secrets-store-csi-driver
       containers:
       - name: vault-csi-provider
         image: hashicorp/vault-csi-provider:1.3.0

@@ -27,7 +27,7 @@ data:
                           filename: "/etc/certs/tls.key"
                     validation_context:
                       trusted_ca:
-                        filename: "/etc/certs/ca.crt"
+                        filename: "/etc/ca/ca.crt"
 
               filters:
                 - name: envoy.filters.network.http_connection_manager

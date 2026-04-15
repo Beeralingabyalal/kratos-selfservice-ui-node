@@ -5,6 +5,9 @@ metadata:
   namespace: authz
 spec:
   replicas: 1
+  revisionHistoryLimit: 0
+  strategy: 
+    type: Recreate
   selector:
     matchLabels:
       app: authz
@@ -13,7 +16,7 @@ spec:
       labels:
         app: authz
     spec:
-      serviceAccountName: default
+      serviceAccountName: vault-auth
 
       containers:
         - name: envoy
@@ -26,16 +29,19 @@ spec:
               mountPath: /etc/certs
             - name: envoy-config
               mountPath: /etc/envoy
+            - name: envoy-ca
+              mountPath: /etc/ca
+              readOnly: true
 
         - name: adapter
           image: authz-adapter:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
 
           env:
             - name: KETO_ADMIN_URL
-              value: "http://172.30.176.1:4466"
+              value: "http://keto:4466"
               
             # - name: KRATOS_ADMIN_TOKEN
             #   valueFrom:
@@ -49,10 +55,10 @@ spec:
             #       name: keto-admin-token
             #       key: admin_token
 
-          # volumeMounts:
-          #   - name: vault-secrets
-          #     mountPath: "/mnt/secrets"
-          #     readOnly: true
+          volumeMounts:
+            - name: vault-secrets
+              mountPath: "/mnt/secrets"
+              readOnly: true
 
       volumes:
         - name: envoy-tls
@@ -63,9 +69,13 @@ spec:
           configMap:
             name: envoy-config
 
-        # - name: vault-secrets
-        #   csi:
-        #     driver: secrets-store.csi.k8s.io
-        #     readOnly: true
-        #     volumeAttributes:
-        #       secretProviderClass: "scansure-vault-secret"
+        - name: envoy-ca
+          secret:
+            secretName: envoy-ca
+
+        - name: vault-secrets
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "vault-secrets"

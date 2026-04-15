@@ -17,6 +17,7 @@ spec:
         app: oathkeeper
 
     spec:
+      serviceAccountName: {{ .Values.serviceAccountName }}
       containers:
         - name: oathkeeper
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -37,6 +38,10 @@ spec:
               mountPath: /etc/config/oathkeeper.yml
               subPath: config.yml
 
+            - name: secrets-store
+              mountPath: /mnt/secrets
+              readOnly: true
+
       volumes:
         - name: rules
           configMap:
@@ -45,3 +50,10 @@ spec:
         - name: config
           configMap:
             name: oathkeeper-config
+
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "vault-secrets"

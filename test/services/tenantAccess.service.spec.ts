@@ -1,3 +1,7 @@
+jest.mock("axios", () => ({
+  put: jest.fn(),
+}))
+
 jest.mock("../../src/lib/db", () => ({
   pool: {
     query: jest.fn(),
@@ -5,9 +9,11 @@ jest.mock("../../src/lib/db", () => ({
 }))
 
 import { pool } from "../../src/lib/db"
+import axios from "axios"
 import * as service from "../../src/services/tenantAccess.service"
 
 const mockQuery = pool.query as jest.Mock
+const mockAxiosPut = axios.put as jest.Mock
 
 describe("tenantAccess.service — checkTenantAccess", () => {
   beforeEach(() => {
@@ -45,5 +51,26 @@ describe("tenantAccess.service — checkTenantAccess", () => {
     await expect(
       service.checkTenantAccess("t1", "u1", "admin")
     ).rejects.toThrow("db error")
+  })
+
+  test("addUserToTenantRelation ignores duplicate tuple errors", async () => {
+    mockAxiosPut.mockRejectedValue({
+      response: { status: 409 },
+    })
+
+    await expect(
+      service.addUserToTenantRelation("t1", "u1", "platform.admin")
+    ).resolves.toBeUndefined()
+  })
+
+  test("addUserToTenantRelation throws non-duplicate errors", async () => {
+    mockAxiosPut.mockRejectedValue({
+      response: { status: 500, data: "boom" },
+      message: "boom",
+    })
+
+    await expect(
+      service.addUserToTenantRelation("t1", "u1", "platform.admin")
+    ).rejects.toBeTruthy()
   })
 })

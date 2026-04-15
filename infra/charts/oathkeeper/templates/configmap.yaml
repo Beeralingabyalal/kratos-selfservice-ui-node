@@ -27,8 +27,9 @@ data:
           extra_from: "@this"
 
     authorizers:
-      allow:
-        enabled: true
+      keto_engine_acp_ory:
+        config:
+          base_url: http://keto:4466
 
     mutators:
       header:

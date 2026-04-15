@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kratos Self-Service UI Design and Workflow</title>
+    <style>
+      :root {
+        --bg: #f4f1ea;
+        --paper: #fffdf8;
+        --ink: #1f2933;
+        --muted: #52606d;
+        --line: #d9d1c3;
+        --accent: #0f766e;
+        --accent-soft: #dff5f2;
+        --accent-deep: #134e4a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        background: linear-gradient(180deg, #efe7d8 0%, var(--bg) 100%);
+        color: var(--ink);
+        line-height: 1.55;
+      }
+
+      .page {
+        max-width: 980px;
+        margin: 32px auto;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        box-shadow: 0 18px 40px rgba(31, 41, 51, 0.08);
+      }
+
+      .hero {
+        padding: 48px 56px 32px;
+        background:
+          radial-gradient(circle at top right, rgba(15, 118, 110, 0.2), transparent 28%),
+          linear-gradient(135deg, #fcfaf5 0%, #f3eee3 100%);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0 0 12px;
+        font-family: Arial, sans-serif;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 38px;
+        line-height: 1.1;
+        color: #15202b;
+      }
+
+      .subtitle {
+        margin: 0;
+        font-size: 18px;
+        color: var(--muted);
+        max-width: 760px;
+      }
+
+      .content {
+        padding: 40px 56px 56px;
+      }
+
+      h2 {
+        margin: 34px 0 14px;
+        font-size: 24px;
+        color: var(--accent-deep);
+      }
+
+      h3 {
+        margin: 24px 0 10px;
+        font-size: 18px;
+        color: #243b53;
+      }
+
+      p {
+        margin: 10px 0;
+      }
+
+      ul, ol {
+        margin: 10px 0 18px 22px;
+      }
+
+      li {
+        margin: 6px 0;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin: 20px 0 28px;
+      }
+
+      .card {
+        padding: 18px 20px;
+        border: 1px solid var(--line);
+        background: #fff;
+      }
+
+      .card h3 {
+        margin-top: 0;
+      }
+
+      .flow {
+        margin: 18px 0 26px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        background: #fff;
+      }
+
+      .flow-step {
+        padding: 10px 0;
+        border-bottom: 1px dashed #d8dee9;
+      }
+
+      .flow-step:last-child {
+        border-bottom: 0;
+      }
+
+      .label {
+        display: inline-block;
+        min-width: 150px;
+        font-weight: bold;
+        color: var(--accent-deep);
+      }
+
+      .code {
+        font-family: "Courier New", monospace;
+        font-size: 13px;
+        white-space: pre-wrap;
+        background: #f8fafc;
+        border: 1px solid #d9e2ec;
+        padding: 16px;
+        margin: 16px 0 22px;
+      }
+
+      .note {
+        background: var(--accent-soft);
+        border-left: 4px solid var(--accent);
+        padding: 14px 16px;
+        margin: 16px 0 24px;
+      }
+
+      .footer {
+        margin-top: 36px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+
+        .page {
+          margin: 0;
+          max-width: none;
+          border: 0;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="hero">
+        <p class="eyebrow">Project Design Document</p>
+        <h1>Kratos Self-Service UI Node</h1>
+        <p class="subtitle">
+          Architecture, page design, and complete workflow for the custom
+          Ory Kratos self-service UI with tenant-aware admin and authorization
+          extensions.
+        </p>
+      </section>
+
+      <section class="content">
+        <h2>1. Project Purpose</h2>
+        <p>
+          This project is a server-rendered authentication and account-management
+          application built with Node.js, Express, and Handlebars. It acts as a
+          custom UI for Ory Kratos self-service identity flows such as login,
+          registration, recovery, verification, settings, sessions, consent, and logout.
+        </p>
+        <p>
+          On top of the standard Kratos flows, the project adds a business layer
+          for multi-tenant onboarding, admin APIs, tenant membership tracking,
+          JWT export, and authorization checks backed by PostgreSQL and Keto-style
+          relation tuples.
+        </p>
+
+        <h2>2. Design Structure</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>Presentation Layer</h3>
+            <p>
+              Handlebars layouts and views render the screens. Ory Elements Markup
+              components generate the actual auth cards from Kratos flow nodes.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Application Layer</h3>
+            <p>
+              Express routes initialize flows, call Kratos, enforce middleware,
+              and connect UI actions to the backend services.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Identity Layer</h3>
+            <p>
+              Ory Kratos manages identities, self-service flows, sessions,
+              verification, recovery, and browser cookies.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Authorization Layer</h3>
+            <p>
+              PostgreSQL stores tenant mappings, JWT secures admin APIs, and Keto
+              relation tuples model tenant-role permissions.
+            </p>
+          </div>
+        </div>
+
+        <h2>3. Page Design Model</h2>
+        <p>
+          The UI is organized into a small set of layouts rather than one page per feature style.
+        </p>
+        <ul>
+          <li><strong>Auth layout:</strong> used for login, registration, recovery, verification, consent, and logout screens.</li>
+          <li><strong>Welcome layout:</strong> used for post-login informational pages and navigation-driven screens.</li>
+          <li><strong>Settings layout:</strong> used for account settings and profile update flows.</li>
+        </ul>
+
+        <div class="note">
+          The visual design is mostly data-driven. Kratos returns a flow object with
+          UI nodes, and the server injects those nodes into Ory Elements Markup
+          components, which then render the final forms and controls.
+        </div>
+
+        <h2>4. Main Components</h2>
+        <ul>
+          <li><strong>Express bootstrap:</strong> configures middleware, view engine, security headers, cookies, body parsing, and route registration.</li>
+          <li><strong>Middleware:</strong> validates sessions, detects language, sets favicon metadata, and protects authenticated routes.</li>
+          <li><strong>Kratos client integration:</strong> fetches login, registration, settings, and verification flows and performs identity CRUD through admin endpoints.</li>
+          <li><strong>Tenant services:</strong> create tenants, assign users to tenants, and store tenant-user-role mappings in PostgreSQL.</li>
+          <li><strong>Keto sync:</strong> mirrors tenant role relationships into authorization tuples for access checks.</li>
+          <li><strong>JWT export:</strong> converts a valid Kratos session into an admin access token for protected APIs.</li>
+        </ul>
+
+        <h2>5. Complete Request Workflow</h2>
+        <div class="flow">
+          <div class="flow-step"><span class="label">Step 1</span>User requests a screen such as <span class="code">/login</span> or <span class="code">/registration</span>.</div>
+          <div class="flow-step"><span class="label">Step 2</span>The Express route checks whether a Kratos flow ID already exists in the query string.</div>
+          <div class="flow-step"><span class="label">Step 3</span>If no flow exists, the app redirects the browser to the Kratos browser flow endpoint.</div>
+          <div class="flow-step"><span class="label">Step 4</span>Kratos creates the flow and redirects back to the UI with a flow ID.</div>
+          <div class="flow-step"><span class="label">Step 5</span>The route calls Kratos again to fetch the full flow state and UI nodes.</div>
+          <div class="flow-step"><span class="label">Step 6</span>The server renders a Handlebars view and inserts an Ory Elements card built from the flow nodes.</div>
+          <div class="flow-step"><span class="label">Step 7</span>The user submits the form. Kratos validates credentials, traits, recovery data, or verification input.</div>
+          <div class="flow-step"><span class="label">Step 8</span>Kratos sets or updates the browser session cookie.</div>
+          <div class="flow-step"><span class="label">Step 9</span>Protected pages and admin flows use session checks or exported JWTs for authorization.</div>
+        </div>
+
+        <h2>6. Authentication Workflow</h2>
+        <h3>Login</h3>
+        <ol>
+          <li>User opens the login page.</li>
+          <li>The route creates or fetches a login flow from Kratos.</li>
+          <li>The page renders login UI nodes with links to signup and recovery.</li>
+          <li>After successful login, Kratos issues a session cookie.</li>
+          <li>Authenticated pages use Kratos <span class="code">toSession()</span> or <span class="code">/sessions/whoami</span> to validate the user.</li>
+        </ol>
+
+        <h3>Registration</h3>
+        <ol>
+          <li>User opens the registration page and receives a Kratos registration flow.</li>
+          <li>The form includes tenant-related traits.</li>
+          <li>The custom registration POST route converts the tenant name into the tenant UUID from PostgreSQL.</li>
+          <li>The route forwards the normalized form data to Kratos.</li>
+          <li>After success, the app reads the new session from Kratos.</li>
+          <li>The app inserts tenant membership into <span class="code">tenant_users</span> and bootstraps authorization data if needed.</li>
+        </ol>
+
+        <h3>Recovery and Verification</h3>
+        <ol>
+          <li>Recovery starts a Kratos recovery flow for password reset or account recovery.</li>
+          <li>Verification starts a Kratos verification flow for email or identity verification.</li>
+          <li>Both routes render Ory cards from Kratos flow nodes and redirect appropriately on soft errors.</li>
+        </ol>
+
+        <h3>Settings and Session</h3>
+        <ol>
+          <li>Authenticated users visit settings or session pages.</li>
+          <li>The route requires a valid Kratos session.</li>
+          <li>The app loads the settings flow or session information.</li>
+          <li>The user can update identity traits or inspect session metadata.</li>
+        </ol>
+
+        <h2>7. Tenant and Admin Workflow</h2>
+        <p>
+          Beyond standard auth, the project supports a tenant-aware operating model.
+        </p>
+        <ol>
+          <li>An admin identity is created either through a bootstrap route or an admin API.</li>
+          <li>Tenant rows are created in PostgreSQL.</li>
+          <li>The identity is stored in Kratos with traits such as email, tenant IDs, and roles.</li>
+          <li>The <span class="code">tenant_users</span> table becomes the main relational source of truth.</li>
+          <li>Keto relation tuples are created or synchronized so permissions can be checked consistently.</li>
+          <li>Admin users can export an application JWT from an active Kratos session.</li>
+          <li>Protected APIs verify that JWT and confirm the actor has the required tenant role.</li>
+        </ol>
+
+        <h2>8. Authorization Workflow</h2>
+        <div class="code">Browser
+  -> Express UI / API
+    -> Kratos public API for browser flows and whoami
+    -> Kratos admin API for identity management
+    -> PostgreSQL for tenants and tenant_users
+    -> Keto for relation tuples
+    -> JWT for admin API authorization</div>
+
+        <p>
+          There are two authorization styles in the codebase:
+        </p>
+        <ul>
+          <li><strong>Session-based authorization:</strong> the app checks a live Kratos session via cookies or session token.</li>
+          <li><strong>JWT-based authorization:</strong> the app exports a short-lived admin token and uses it to protect admin APIs.</li>
+        </ul>
+
+        <h2>9. Important Design Decisions</h2>
+        <ul>
+          <li>Kratos remains the source of truth for identity and session state.</li>
+          <li>The UI is thin and server-rendered, which keeps auth screens consistent with Kratos flow state.</li>
+          <li>Tenant membership is normalized through database mappings instead of only trusting raw traits.</li>
+          <li>Authorization tuples are synchronized externally so tenant-level permissions can be enforced independently.</li>
+          <li>Admin audit middleware supports Oathkeeper headers first and Kratos session fallback second.</li>
+        </ul>
+
+        <h2>10. Summary</h2>
+        <p>
+          In design terms, this is a layered identity platform UI. Express and Handlebars provide
+          the presentation shell, Kratos provides authentication and self-service flow orchestration,
+          PostgreSQL stores tenant relationships, and Keto plus JWT extend the system into a
+          tenant-based admin authorization platform.
+        </p>
+        <p>
+          The full workflow starts with a browser request, moves through a Kratos flow lifecycle,
+          establishes a session, and then branches into either user self-service screens or
+          tenant-admin operations secured by additional authorization checks.
+        </p>
+
+        <div class="footer">
+          Generated from the local project structure on 2026-04-10.
+        </div>
+      </section>
+    </div>
+  </body>
+  </html>

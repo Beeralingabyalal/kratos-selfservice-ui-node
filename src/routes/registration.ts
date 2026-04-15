@@ -1,7 +1,6 @@
 import axios from "axios"
-import { pool } from "../lib/db";
-import { Request, Response, NextFunction } from "express";
-
+import { pool } from "../lib/db"
+import { Request, Response, NextFunction } from "express"
 
 import {
   defaultConfig,
@@ -12,12 +11,15 @@ import {
   RouteCreator,
   RouteRegistrator,
 } from "../pkg"
+
 import { UserAuthCard } from "@ory/elements-markup"
-import { URLSearchParams } from "url"
 
 const KETO_BOOTSTRAP_URL =
   process.env.KETO_BOOTSTRAP_URL || "http://keto-bootstrap:4000"
 
+// =====================================================
+// GET REGISTRATION (FIXED — NO KETO CALL HERE ❌)
+// =====================================================
 export const createRegistrationRoute: RouteCreator =
   (createHelpers) => async (req, res, next) => {
     res.locals.projectName = "Create account"
@@ -39,7 +41,8 @@ export const createRegistrationRoute: RouteCreator =
       ...(organization && { organization: organization.toString() }),
       ...(identity_schema && { identity_schema: identity_schema.toString() }),
       ...(after_verification_return_to && {
-        after_verification_return_to: after_verification_return_to.toString(),
+        after_verification_return_to:
+          after_verification_return_to.toString(),
       }),
     })
 
@@ -50,54 +53,24 @@ export const createRegistrationRoute: RouteCreator =
     const initFlowUrl = getUrlForFlow(
       kratosBrowserUrl,
       "registration",
-      initFlowQuery,
+      initFlowQuery
     )
 
-    // :repeat: Initialize registration flow
     if (!isQuerySet(flow)) {
       return res.redirect(303, initFlowUrl)
     }
 
     try {
-      // :one: Load registration flow
       const { data: flowData } = await frontend.getRegistrationFlow({
         id: flow,
         cookie: req.header("Cookie"),
       })
 
-      // 🔥 OVERRIDE FORM ACTION TO YOUR BACKEND
-      flowData.ui.action = `/self-service/registration?flow=${flow}`;
+      // ✅ Override form action
+      flowData.ui.action = `/self-service/registration?flow=${flow}`
 
-      // :two: Try to fetch session (exists only AFTER successful registration)
-      const sessionResponse = await frontend
-        .toSession({ cookie: req.header("Cookie") })
-        .catch(() => null)
+      // ❌ REMOVED: NO KETO CALL HERE (THIS CAUSED DUPLICATES)
 
-      if (sessionResponse?.data?.identity) {
-        const identity = sessionResponse.data.identity
-        const userId = identity.id
-        const tenantId = identity.traits?.tenant_id?.[0]
-
-        if (!tenantId) {
-          throw new Error("tenant_id missing in identity traits")
-        }
-
-        // :three: CALL KETO BOOTSTRAP :white_check_mark:
-        await axios.post(`${KETO_BOOTSTRAP_URL}/bootstrap/tenant`, {
-          tenantId,
-          userId,
-        })
-
-        logger.info(":white_check_mark: Keto tuple created automatically", {
-          tenantId,
-          userId,
-        })
-
-        // :four: Redirect after successful registration
-        return res.redirect(303, "/welcome")
-      }
-
-      // :five: Render registration UI (before submit)
       res.render("registration", {
         nodes: flowData.ui.nodes,
         card: UserAuthCard(
@@ -106,7 +79,7 @@ export const createRegistrationRoute: RouteCreator =
             flowType: "registration",
             cardImage: logoUrl,
           },
-          { locale: res.locals.lang },
+          { locale: res.locals.lang }
         ),
         extraPartial: extraPartials?.registration,
         extraContext: res.locals.extraContext,
@@ -116,101 +89,134 @@ export const createRegistrationRoute: RouteCreator =
     }
   }
 
+// =====================================================
+// REGISTER ROUTES
+// =====================================================
 export const registerRegistrationRoute: RouteRegistrator = (
   app,
-  createHelpers = defaultConfig,
+  createHelpers = defaultConfig
 ) => {
   app.get("/registration", createRegistrationRoute(createHelpers))
 
   app.post("/self-service/registration", async (req, res, next) => {
-  try {
-    const { flow } = req.query
+    try {
+      const { flow } = req.query
 
-    console.log("BODY:", req.body)
+      console.log("BODY:", req.body)
 
-    // 🔥 Treat tenant_id as tenant name
-    const tenantName = req.body["traits.tenant_id"]
+      // ===============================
+      // GET TENANT NAME
+      // ===============================
+      const tenantName = req.body["traits.tenant_id"]
 
-    if (!tenantName) {
-      return res.status(400).send("Tenant not available")
-    }
-
-    // 🔥 DB lookup
-    const result = await pool.query(
-      "SELECT id FROM tenants WHERE name = $1",
-      [tenantName]
-    )
-
-    if (!result.rows.length) {
-      return res.status(400).send("Invalid tenant")
-    }
-
-    const tenantId = result.rows[0].id
-
-    // 🔥 Replace with UUID
-    req.body["traits.tenant_id"] = tenantId
-
-    // 🔥 Fix roles
-    if (req.body["traits.roles"]) {
-      req.body["traits.roles"] = [req.body["traits.roles"]][0]
-    }
-
-    // 🔥 Ensure method exists
-    req.body["method"] = "password"
-
-    // 🔥 Convert properly
-    const formData = new URLSearchParams()
-    Object.keys(req.body).forEach((key) => {
-      formData.append(key, req.body[key])
-    })
-
-    // 🔥 Send to Kratos
-    await axios.post(
-      `${process.env.KRATOS_PUBLIC_URL}/self-service/registration?flow=${flow}`,
-      formData,
-      {
-        headers: {
-          Cookie: req.header("Cookie"),
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
+      if (!tenantName) {
+        return res.status(400).send("Tenant not available")
       }
-    )
 
-    const session = await axios
-    .get(`${process.env.KRATOS_PUBLIC_URL}/sessions/whomi`,{
-      headers:{
-        Cookie: req.header("Cookie"),
-      },
-    })
-    .catch(() => null)
+      // ===============================
+      // DB LOOKUP
+      // ===============================
+      const result = await pool.query(
+        "SELECT id FROM tenants WHERE name = $1",
+        [tenantName]
+      )
 
-    if (session?.data?.identity){
-      const identity =session.data.identity
-      const userId = identity.id
-      const tenantId = identity.traits?.tenant_id?.[0]
+      if (!result.rows.length) {
+        return res.status(400).send("Invalid tenant")
+      }
 
-      await axios.post(`${process.env.KETO_BOOTSTRAP_URL}/bootstrap/tenant`,{
-        tenantId,
-        userId
+      const tenantId = result.rows[0].id
+
+      // ===============================
+      // MODIFY REQUEST
+      // ===============================
+      req.body["traits.tenant_id"] = tenantId
+
+      if (req.body["traits.roles"]) {
+        req.body["traits.roles"] = [req.body["traits.roles"]][0]
+      }
+
+      req.body["method"] = "password"
+
+      // ===============================
+      // FIX URLSearchParams (NO IMPORT NEEDED)
+      // ===============================
+      const formData = new URLSearchParams()
+      Object.keys(req.body).forEach((key) => {
+        formData.append(key, req.body[key])
       })
-      console.log("keto tuple created",{ tenantId, userId })
-      }else{
+
+      // ===============================
+      // CALL KRATOS
+      // ===============================
+      await axios.post(
+        `${process.env.KRATOS_PUBLIC_URL}/self-service/registration?flow=${flow}`,
+        formData,
+        {
+          headers: {
+            Cookie: req.header("Cookie"),
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        }
+      )
+
+      // ===============================
+      // FETCH SESSION
+      // ===============================
+      const session = await axios
+        .get(`${process.env.KRATOS_PUBLIC_URL}/sessions/whoami`, {
+          headers: {
+            Cookie: req.header("Cookie"),
+          },
+        })
+        .catch(() => null)
+
+      if (session?.data?.identity) {
+        const identity = session.data.identity
+        const userId = identity.id
+        const tenantId = identity.traits?.tenant_id?.[0]
+
+        // ===============================
+        // 🔥 CHECK DB BEFORE KETO CALL
+        // ===============================
+        const exists = await pool.query(
+          `
+          SELECT 1 FROM tenant_users
+          WHERE tenant_id = $1
+            AND identity_id = $2
+            AND role = $3
+          LIMIT 1
+          `,
+          [tenantId, userId, "platform.admin"]
+        )
+
+        if (exists.rows.length === 0) {
+          // ✅ ONLY CALL ONCE
+          await axios.post(
+            `${process.env.KETO_BOOTSTRAP_URL}/bootstrap/tenant`,
+            {
+              tenantId,
+              userId,
+            }
+          )
+
+          console.log("✅ Keto tuple created", { tenantId, userId })
+        } else {
+          console.log("⚠️ Relation already exists — skip Keto")
+        }
+      } else {
         console.warn("session not found after registration")
       }
-    
 
-    // ✅ SUCCESS → redirect manually
-    return res.redirect(303, "/welcome")
+      return res.redirect(303, "/welcome")
+    } catch (err: any) {
+      console.error("ERROR:", err.response?.data || err.message)
 
-  } catch (err: any) {
-    console.error("ERROR:", err.response?.data || err.message)
+      if (err.response?.status === 400) {
+        return res.redirect(`/registration?flow=${req.query.flow}`)
+      }
 
-    // 🔥 If Kratos returns validation error → show UI again
-    if (err.response?.status === 400) {
-      return res.redirect(`/registration?flow=${req.query.flow}`)
+      next(err)
     }
-
-    next(err)
-  }
-})
+  })
 }

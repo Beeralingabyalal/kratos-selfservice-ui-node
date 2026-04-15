@@ -1,0 +1,166 @@
+---
+# Source: oathkeeper/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oathkeeper-config
+data:
+  config.yml: |
+    serve:
+      proxy:
+        port: 4455
+      api:
+        port: 4456
+
+    access_rules:
+      matching_strategy: regexp
+      repositories:
+        - file:///etc/access-rules.json
+
+    log:
+      level: debug
+
+    authenticators:
+      cookie_session:
+        enabled: true
+        config:
+          check_session_url: http://kratos:4433/sessions/whoami
+          subject_from: identity.id
+          extra_from: "@this"
+
+    authorizers:
+      allow:
+        enabled: true
+
+    mutators:
+      header:
+        enabled: true
+        config:
+          headers:
+            x-user: "{{ print .Subject }}"
+
+    errors:
+      fallback:
+        - json
+---
+# Source: oathkeeper/templates/rules-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oathkeeper-rules
+data:
+  access-rules.json: |
+
+    [
+      {
+        "id": "tenant-session-access",
+        "match": {
+          "url": "http://localhost:4455/api/tenant/<.*>",
+          "methods": ["GET","POST","PUT","PATCH","DELETE"]
+        },
+        "authenticators": [
+          {
+            "handler": "cookie_session",
+            "config": {
+              "check_session_url": "http://kratos:4433/sessions/whoami",
+              "preserve_path": true
+            }
+          }
+        ],
+        "authorizer":{
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "x-user": "{{`{{ print .Subject }}`}}",
+                "x-email": "{{`{{ print .Extra.identity.traits.email }}`}}",
+                "x-tenant": "{{`{{ print .Extra.identity.traits.tenant_id }}`}}",
+                "x-roles": "{{`{{ print .Extra.identity.traits.roles }}`}}"
+              }
+            }
+          }
+        ],
+        "upstream": {
+          "url": "http://host.docker.internal:3000"
+        }
+      }
+    ]
+---
+# Source: oathkeeper/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: oathkeeper
+spec:
+  selector:
+    app: oathkeeper
+  ports:
+    - name: proxy
+      port: 4455
+      targetPort: 4455
+    - name: api
+      port: 4456
+      targetPort: 4456
+---
+# Source: oathkeeper/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oathkeeper
+  labels:
+    app: oathkeeper
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: oathkeeper
+
+  template:
+    metadata:
+      labels:
+        app: oathkeeper
+
+    spec:
+      containers:
+        - name: oathkeeper
+          image: "oryd/oathkeeper:v0.40.6"
+          command: ["oathkeeper", "serve", "-c", "/etc/config/oathkeeper.yml"]
+
+          ports:
+            - name: proxy
+              containerPort: 4455
+            - name: api
+              containerPort: 4456
+
+          volumeMounts:
+            - name: rules
+              mountPath: /etc/access-rules.json
+              subPath: access-rules.json
+
+            - name: config
+              mountPath: /etc/config/oathkeeper.yml
+              subPath: config.yml
+
+            - name: secrets-store
+              mountPath: /mnt/secrets
+              readOnly: true
+
+      volumes:
+        - name: rules
+          configMap:
+            name: oathkeeper-rules
+
+        - name: config
+          configMap:
+            name: oathkeeper-config
+
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "vault-secrets"

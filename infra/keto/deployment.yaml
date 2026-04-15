@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keto
+  namespace: authz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keto
+  template:
+    metadata:
+      labels:
+        app: keto
+    spec:
+      containers:
+        - name: keto
+          image: oryd/keto:v0.11
+          args:
+            - serve
+            - all
+            - --config
+            - /etc/config/keto.yml
+          ports:
+            - containerPort: 4466
+            - containerPort: 4467
+          volumeMounts:
+            - name: config
+              mountPath: /etc/config
+      volumes:
+        - name: config
+          configMap:
+            name: keto-config

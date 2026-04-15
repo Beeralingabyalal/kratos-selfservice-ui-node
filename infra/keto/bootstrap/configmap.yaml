@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keto-bootstrap-code
+  namespace: authz
+data:
+  server.js: |
+    const express = require("express");
+    const axios = require("axios");
+    const fs = require("fs");
+
+    const app = express();
+    app.use(express.json());
+
+    const KETO_ADMIN_URL = "http://keto:4467";
+
+    const TOKEN = fs.readFileSync("/mnt/secrets/keto-admin-token", "utf-8").trim();
+
+    app.post("/bootstrap/tenants", async (req, res) => {
+      const { userId, tenants, role } = req.body;
+
+      if (!userId || !Array.isArray(tenants)) {
+        return res.status(400).json({ error: "invalid input" });
+      }
+
+      const relation = role || "platform.user";
+
+      try {
+        for (const tenantId of tenants) {
+          await axios.put(
+            `${KETO_ADMIN_URL}/admin/relation-tuples`,
+            {
+              namespace: "tenant",
+              object: tenantId,
+              relation,
+              subject_id: userId,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${TOKEN}`,
+              },
+            }
+          );
+        }
+
+        res.json({ success: true });
+      } catch (e) {
+        console.error(e.response?.data || e.message);
+        res.status(500).json({ error: "failed" });
+      }
+    });
+
+    app.listen(4000, () => console.log("bootstrap running"));

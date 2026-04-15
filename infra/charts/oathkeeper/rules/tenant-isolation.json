@@ -15,7 +15,11 @@
       }
     ],
     "authorizer":{
-      "handler": "allow"
+      "handler": "keto_engine_acp_ory",
+      "config": {
+        "required_action": "{{ print .Extra.identity.traits.role }}",
+        "required_resource": "{{ print .Extra.identity.traits.tenant_id }}"
+      }
     },
     "mutators": [
       {

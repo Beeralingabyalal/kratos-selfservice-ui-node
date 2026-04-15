@@ -1,0 +1,6 @@
+{
+  "bound_service_account_names": "vault-auth",
+  "bound_service_account_namespaces": "authz",
+  "policies": "scansure-runtime",
+  "ttl": "1h"
+}

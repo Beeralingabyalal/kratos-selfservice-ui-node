@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keto-bootstrap
+  namespace: authz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keto-bootstrap
+  template:
+    metadata:
+      labels:
+        app: keto-bootstrap
+    spec:
+      serviceAccountName: vault-auth
+
+      containers:
+        - name: keto-bootstrap
+          image: node:18-alpine
+          workingDir: /app
+          command: ["sh", "-c"]
+
+          args:
+            - |
+              echo "Setting up writable app directory..."
+              mkdir -p /tmp/app
+              cp /app/server.js /tmp/app/
+
+              cd /tmp/app
+
+              echo "Initializing npm..."
+              npm init -y
+
+              echo "Installing dependencies..."
+              npm install express axios
+
+              echo "Starting bootstrap server..."
+              node server.js
+
+          volumeMounts:
+            # ✅ Mount your code (read-only ConfigMap)
+            - name: app-code
+              mountPath: /app
+
+            # ✅ Mount Vault secrets
+            - name: secrets-store
+              mountPath: /mnt/secrets
+              readOnly: true
+
+      volumes:
+        # ✅ ConfigMap with server.js
+        - name: app-code
+          configMap:
+            name: keto-bootstrap-code
+
+        # ✅ Vault CSI secrets
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "vault-secrets"

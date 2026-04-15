@@ -46,6 +46,7 @@ import {
   registerLogoutRoute,
 } from "./routes"
 import { registerAdminRoutes } from "./routes/admin"
+import relationTupleWrapper from "./routes/relationTupleWrapper";
 import tenantRouter from "./routes/tenant"
 import adminIdentityRouter from "./routes/admin.identity";
 import adminIdentityUpdate from "./routes/admin.identity.update"
@@ -158,6 +159,7 @@ router.use(adminIdentityRouter);
 router.use(adminIdentityList);
 router.use(adminIdentityDelete);
 router.use(tenantResourceRouter);
+router.use(relationTupleWrapper);
 router.use(tenantAccessCheckRouter);
 router.use(adminIdentityUpdate);
 /* ---------------- Consent / Logout ---------------- */

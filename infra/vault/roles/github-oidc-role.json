@@ -1,0 +1,11 @@
+{
+  "role_type": "jwt",
+  "user_claim": "actor",
+  "bound_audiences": "https://github.com/<YOUR_ORG>",
+  "bound_claims_type": "glob",
+  "bound_claims": {
+    "sub": "repo:<YOUR_ORG>/<YOUR_REPO>:*"
+  },
+  "policies": "scansure-ci",
+  "ttl": "1h"
+}

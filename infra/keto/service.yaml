@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: keto
+  namespace: authz
+spec:
+  selector:
+    app: keto
+  ports:
+    - name: read
+      port: 4466
+      targetPort: 4466
+    - name: write
+      port: 4467
+      targetPort: 4467

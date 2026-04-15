@@ -8,7 +8,7 @@ app.use(express.json())
 const logger = pino()
 
 const KETO_ADMIN_URL =
-  process.env.KETO_ADMIN_URL || "http://host.docker.internal:4466"
+  process.env.KETO_ADMIN_URL || "http://keto:4466"
 
 function extractCN(header?: string): string | null {
   if (!header) return null
@@ -18,22 +18,25 @@ function extractCN(header?: string): string | null {
 
 app.all("/check", async (req: Request, res: Response) => {
   try {
-    // 🔹 1. Extract subject (mTLS OR Oathkeeper)
     const xfcc = req.headers["x-forwarded-client-cert"] as string | undefined
 
     let subject: string | null = null
     let source = ""
 
-    // 🔐 mTLS flow
+    // mTLS
     if (xfcc) {
       const cn = extractCN(xfcc)
       if (cn) {
-        subject = `service:${cn}`
+        subject = cn
         source = "mtls"
       }
+
+      console.log("XFCC HEADER:", xfcc)
+      console.log("EXTRACTED CN:", cn)
+      console.log("final subject:", subject)
     }
 
-    // 👤 Oathkeeper flow
+    // Oathkeeper
     if (!subject) {
       const user =
         (req.headers["x-subject"] as string) ||
@@ -46,11 +49,9 @@ app.all("/check", async (req: Request, res: Response) => {
     }
 
     if (!subject) {
-      logger.warn({ msg: "No subject found" })
       return res.status(403).json({ allowed: false })
     }
 
-    // 🔹 2. Extract tenant (object)
     let object = req.body.object
 
     if (!object) {
@@ -58,20 +59,18 @@ app.all("/check", async (req: Request, res: Response) => {
         (req.headers["x-forwarded-uri"] as string) || req.url
 
       const parts = forwardedUri.split("/")
-      if (parts.length >= 4){
-        object = parts[3] // /api/tenant/<tenantId>
-      }else if(parts.length >= 2){
-        object = parts[1]
-      }
+      object = parts[3] || parts[1]
     }
 
     const namespace = req.body.namespace || "tenant"
 
-    // 🔹 3. Relation (role)
-    const relation = req.body.relation || "platform.admin"
+    // 🔥 Make relation dynamic (important improvement)
+    const relation =
+      req.body.relation ||
+      (req.headers["x-roles"] as string) ||
+      "platform.user"
 
-    // 🔥 4. Single Keto check (NO Kratos call)
-    const response = await axios.get(`${KETO_ADMIN_URL}/check`, {
+    const response = await axios.get(`${KETO_ADMIN_URL}/relation-tuples/check`, {
       params: {
         namespace,
         object,
@@ -82,7 +81,6 @@ app.all("/check", async (req: Request, res: Response) => {
 
     const allowed = response.data.allowed
 
-    // 📊 Structured audit log
     logger.info({
       actor: subject,
       object,
@@ -93,6 +91,7 @@ app.all("/check", async (req: Request, res: Response) => {
 
     return res.json({ allowed })
 
+
   } catch (err) {
     logger.error(err)
     return res.status(500).json({ allowed: false })
@@ -102,7 +101,7 @@ app.all("/check", async (req: Request, res: Response) => {
 export default app
 
 if (require.main === module) {
-  app.listen(3001, () => {
-    console.log("AuthZ Adapter running on port 3001")
+  app.listen(3000, () => {
+    console.log("AuthZ Adapter running on port 3000")
   })
 }

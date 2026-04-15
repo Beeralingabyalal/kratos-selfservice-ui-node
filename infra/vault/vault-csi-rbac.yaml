@@ -3,11 +3,24 @@ kind: ClusterRole
 metadata:
   name: vault-csi-token-creator
 rules:
+# ✅ token creation
 - apiGroups: [""]
   resources:
     - serviceaccounts/token
   verbs:
     - create
+
+# ✅ FULL secrets access (THIS IS THE FINAL FIX)
+- apiGroups: [""]
+  resources:
+    - secrets
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - delete
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -20,5 +33,5 @@ roleRef:
   name: vault-csi-token-creator
 subjects:
 - kind: ServiceAccount
-  name: default
+  name: secrets-store-csi-driver
   namespace: kube-system
