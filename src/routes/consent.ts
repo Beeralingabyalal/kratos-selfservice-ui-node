@@ -1,3 +1,4 @@
+// C:\Users\Kasetti User\Desktop\kratos-selfservice-ui-node\src\routes\consent.ts
 // Copyright © 2023 Ory Corp
 // SPDX-License-Identifier: Apache-2.0
 import {
@@ -9,7 +10,6 @@ import {
 } from "../pkg"
 import { oidcConformityMaybeFakeSession } from "./stub/oidc-cert"
 import { AcceptOAuth2ConsentRequestSession } from "@ory/client"
-import { UserConsentCard } from "@ory/elements-markup"
 import { Request, Response, NextFunction } from "express"
 
 const extractSession = (
@@ -24,6 +24,31 @@ const extractSession = (
   const identity = (req as any).session?.identity
   if (!identity) {
     return session
+  }
+
+  const tenantTrait = identity.traits?.tenant_id
+  const tenantIds = Array.isArray(tenantTrait)
+    ? tenantTrait
+    : tenantTrait
+      ? [tenantTrait]
+      : []
+  const roles = Array.isArray(identity.traits?.roles)
+    ? identity.traits.roles
+    : []
+
+  if (tenantIds.length > 0) {
+    session.id_token.tenant_id = tenantIds[0]
+    session.access_token.tenant_id = tenantIds[0]
+
+    if (tenantIds.length > 1) {
+      session.id_token.tenant_ids = tenantIds
+      session.access_token.tenant_ids = tenantIds
+    }
+  }
+
+  if (roles.length > 0) {
+    session.id_token.roles = roles
+    session.access_token.roles = roles
   }
 
   if (grantScope.includes("email")) {
@@ -103,9 +128,9 @@ export const createConsentRoute: RouteCreator =
       // This will be called if the HTTP request was successful
       .then(async ({ data: body }) => {
         // If a user has granted this application the requested scope, hydra will tell us to not show the UI.
-        if (canSkipConsent(body)) {
+        if (true) {
           logger.debug("Skipping consent request and accepting it.")
-          let grantScope = body.requested_scope || []
+          const grantScope = body.requested_scope || []
           const session = extractSession(req, grantScope)
 
           // Now it's time to grant the consent request. You could also deny the request if something went terribly wrong
@@ -123,45 +148,19 @@ export const createConsentRoute: RouteCreator =
 
                 // The session allows us to set session data for id and access tokens
                 session,
+                remember: false,
               },
             })
             .then(({ data: body }) => {
               logger.debug("Consent request successfuly accepted")
               // All we need to do now is to redirect the user back to hydra!
+              console.log("CONSENT REDIRECT:", body.redirect_to);
               res.redirect(String(body.redirect_to))
             })
             .catch(next)
           return
         }
 
-        // this should never happen
-        if (!req.csrfToken) {
-          logger.warn(
-            "Expected CSRF token middleware to be set but received none.",
-          )
-          next(
-            new Error(
-              "Expected CSRF token middleware to be set but received none.",
-            ),
-          )
-          return
-        }
-
-        // If consent can't be skipped we MUST show the consent UI.
-        res.render("consent", {
-          card: UserConsentCard({
-            consent: body,
-            csrfToken: req.csrfToken(true),
-            cardImage: body.client?.logo_uri || logoUrl,
-            client_name:
-              body.client?.client_name ||
-              body.client?.client_id ||
-              "Unknown Client",
-            requested_scope: body.requested_scope || [],
-            client: body.client,
-            action: "consent",
-          }),
-        })
       })
       // This will handle any error that happens when making HTTP calls to hydra
       .catch(next)

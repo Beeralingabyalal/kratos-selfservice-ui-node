@@ -13,6 +13,10 @@ serve:
 namespaces:
   - id: 0
     name: tenant
+  - id: 1
+    name: patient
+  - id: 2
+    name: report
 
 log:
   level: debug

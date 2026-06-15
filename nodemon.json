@@ -10,6 +10,10 @@
     "ORY_SDK_URL": "http://localhost:4433",
     "KRATOS_PUBLIC_URL": "http://localhost:4433",
     "KRATOS_ADMIN_URL": "http://localhost:4434",
+    "HYDRA_PUBLIC_URL": "http://localhost:4444",
+    "HYDRA_ISSUER_URL": "http://localhost:4444",
+    "HYDRA_ADMIN_URL": "http://localhost:4445",
+    "HYDRA_CLIENT_ID": "20822a9f-fc3f-4d20-85f2-0cf5393c00cf",
     "NODE_ENV": "development"
   }
 }

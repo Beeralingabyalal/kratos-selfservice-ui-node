@@ -8,6 +8,10 @@ declare global {
         sub: string;
         email?: string;
         role?: string;
+        roles?: string[];
+        scope?: string;
+        tenant_id?: string | string[];
+        tenant_ids?: string[];
         tenants?: any[];
       };
       actor?: any;

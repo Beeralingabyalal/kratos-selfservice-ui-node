@@ -1,6 +1,6 @@
 import { withTransaction } from "../lib/db";
-import { addUserToTenantRelation } from "./tenantAccess.service";
 import { pool } from "../lib/db"; // or your db client
+import { syncKetoRoles } from "./ketoSync.service";
 
 
 export type TenantRow = {
@@ -47,11 +47,13 @@ export async function createMultipleTenants(
         [tenant.id, identityId]
       );
 
-      // 4️⃣ Ensure Keto relation (idempotent by design)
-      await addUserToTenantRelation(
-        tenant.id,
+      // 4️⃣ Ensure Keto relation after the DB mapping has been written once.
+      // Avoid writing tenant_users again on a separate connection here, because
+      // that can block behind the open transaction and hang the request.
+      await syncKetoRoles(
         identityId,
-        "platform.admin"
+        [tenant.id],
+        ["platform.admin"]
       );
 
       tenants.push(tenant);

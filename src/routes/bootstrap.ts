@@ -5,10 +5,6 @@ import { syncKetoRoles } from "../services/ketoSync.service";
 
 const router = Router();
 
-/**
- * BOOTSTRAP TENANT (RUN ONCE)
- * NOT protected by requireAdmin
- */
 router.post("/api/bootstrap/tenant", async (req: Request, res: Response) => {
   const { tenantName, ownerEmail, password } = req.body;
 
@@ -20,23 +16,26 @@ router.post("/api/bootstrap/tenant", async (req: Request, res: Response) => {
 
   try {
     const result = await withTransaction(async (client) => {
-      // 1️⃣ Create tenant
+      console.log("[bootstrap] start", { tenantName, ownerEmail });
+
       const tenantRes = await client.query(
         "INSERT INTO tenants(name) VALUES ($1) RETURNING id",
         [tenantName]
       );
 
       const tenantId = tenantRes.rows[0].id;
+      console.log("[bootstrap] tenant inserted", { tenantId });
 
-      // 2️⃣ Create admin identity in Kratos
       const identity = await createKratosIdentity({
         email: ownerEmail,
         tenantId,
         roles: ["platform.admin"],
         password,
       });
+      console.log("[bootstrap] kratos identity ready", {
+        identityId: identity.id,
+      });
 
-      // 3️⃣ Insert mapping in tenant_users
       await client.query(
         `
         INSERT INTO tenant_users (tenant_id, identity_id, role)
@@ -44,9 +43,16 @@ router.post("/api/bootstrap/tenant", async (req: Request, res: Response) => {
         `,
         [tenantId, identity.id, "platform.admin"]
       );
+      console.log("[bootstrap] tenant_users inserted", {
+        tenantId,
+        identityId: identity.id,
+      });
 
-      // 4️⃣ Sync Keto
       await syncKetoRoles(identity.id, [tenantId], ["platform.admin"]);
+      console.log("[bootstrap] keto sync complete", {
+        tenantId,
+        identityId: identity.id,
+      });
 
       return {
         tenantId,
@@ -58,8 +64,10 @@ router.post("/api/bootstrap/tenant", async (req: Request, res: Response) => {
       message: "Bootstrap tenant created",
       ...result,
     });
-
   } catch (err: any) {
+    console.error("[bootstrap] failed", err);
     return res.status(500).json({ error: err.message });
   }
 });
+
+export default router;

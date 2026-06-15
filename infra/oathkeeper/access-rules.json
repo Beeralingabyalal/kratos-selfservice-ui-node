@@ -1,5 +1,230 @@
 [
   {
+    "id": "ai-gateway-jwt-access",
+    "match": {
+      "url": "http://localhost:4455/ai/<.*>",
+      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    },
+    "authenticators": [
+      {
+        "handler": "jwt"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "header",
+        "config": {
+          "headers": {
+            "x-auth-subject": "{{ print .Subject }}"
+          }
+        }
+      }
+    ],
+    "upstream": {
+      "url": "http://ai-gateway:4000"
+    }
+  },
+  {
+    "id": "model-registry-jwt-access-root",
+    "match": {
+      "url": "http://localhost:4455/models",
+      "methods": ["GET", "POST", "PATCH", "OPTIONS", "DELETE"]
+    },
+    "authenticators": [
+      {
+        "handler": "jwt"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "header",
+        "config": {
+          "headers": {
+            "x-auth-subject": "{{ print .Subject }}"
+          }
+        }
+      }
+    ],
+    "upstream": {
+      "url": "http://model-registry:4050"
+    }
+  },
+  {
+    "id": "model-registry-jwt-access-subpaths",
+    "match": {
+      "url": "http://localhost:4455/models/<.*>",
+      "methods": ["GET", "POST", "PATCH", "OPTIONS","DELETE"]
+    },
+    "authenticators": [
+      {
+        "handler": "jwt"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "header",
+        "config": {
+          "headers": {
+            "x-auth-subject": "{{ print .Subject }}"
+          }
+        }
+      }
+    ],
+    "upstream": {
+      "url": "http://model-registry:4050"
+    }
+  },
+  {
+    "id": "schema-registry-jwt-access-root",
+    "match": {
+      "url": "http://localhost:4455/schemas",
+      "methods": ["GET", "POST", "PATCH", "OPTIONS", "DELETE"]
+    },
+    "authenticators": [
+      {
+        "handler": "jwt"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "header",
+        "config": {
+          "headers": {
+            "x-auth-subject": "{{ print .Subject }}"
+          }
+        }
+      }
+    ],
+    "upstream": {
+      "url": "http://schema-registry:4060"
+    }
+  },
+  {
+    "id": "schema-registry-jwt-access-subpaths",
+    "match": {
+      "url": "http://localhost:4455/schemas/<.*>",
+      "methods": ["GET", "POST", "PATCH", "OPTIONS", "DELETE"]
+    },
+    "authenticators": [
+      {
+        "handler": "jwt"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "header",
+        "config": {
+          "headers": {
+            "x-auth-subject": "{{ print .Subject }}"
+          }
+        }
+      }
+    ],
+    "upstream": {
+      "url": "http://schema-registry:4060"
+    }
+  },
+  {
+    "id": "dicom-deid-jwt-access",
+    "match": {
+      "url": "http://localhost:4455/dicom/<.*>",
+      "methods": ["GET", "POST", "OPTIONS"]
+    },
+    "authenticators": [
+      {
+        "handler": "jwt"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "header",
+        "config": {
+          "headers": {
+            "x-auth-subject": "{{ print .Subject }}",
+            "x-tenant-id": "{{ if index .Extra \"tenant_id\" }}{{ print (index .Extra \"tenant_id\") }}{{ else }}{{ print (index (index .Extra \"ext\") \"tenant_id\") }}{{ end }}"
+          }
+        }
+      }
+    ],
+    "upstream": {
+      "url": "http://dicom-deid:4040"
+    }
+  },
+  {
+    "id": "review-service-jwt-access-root",
+    "match": {
+      "url": "http://localhost:4455/reviews",
+      "methods": ["GET", "POST", "PATCH", "OPTIONS"]
+    },
+    "authenticators": [
+      {
+        "handler": "jwt"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "header",
+        "config": {
+          "headers": {
+            "x-auth-subject": "{{ print .Subject }}"
+          }
+        }
+      }
+    ],
+    "upstream": {
+      "url": "http://review-service:4015"
+    }
+  },
+  {
+    "id": "review-service-jwt-access-subpaths",
+    "match": {
+      "url": "http://localhost:4455/reviews/<.*>",
+      "methods": ["GET", "POST", "PATCH", "OPTIONS"]
+    },
+    "authenticators": [
+      {
+        "handler": "jwt"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "header",
+        "config": {
+          "headers": {
+            "x-auth-subject": "{{ print .Subject }}"
+          }
+        }
+      }
+    ],
+    "upstream": {
+      "url": "http://review-service:4015"
+    }
+  },
+  {
     "id": "tenant-session-access",
     "match": {
       "url": "http://localhost:4455/api/tenant/<.*>",

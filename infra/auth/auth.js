@@ -2,7 +2,18 @@ const jwt = require("jsonwebtoken");
 const axios = require("axios");
 
 const KETO_READ_URL = process.env.KETO_READ_URL || "http://keto:4466";
+const jwksClient = require("jwks-rsa");
+const client = jwksClient({
+    jwksUri: "http://localhost:4444/.well-known/jwks.json",
+  });
 
+function getKey(header, callback) {
+    client.getSigningKey(header.kid, (err, key) => {
+      if (err) return callback(err);
+      callback(null, key.getPublicKey());
+    });
+  }
+  
 module.exports = async function auth(req, res, next) {
   const header = req.headers.authorization;
 
@@ -13,9 +24,19 @@ module.exports = async function auth(req, res, next) {
   const token = header.replace("Bearer ", "");
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.userId;
-    const roles = decoded.roles || [];
+
+  const decoded = await new Promise((resolve, reject) => {
+    jwt.verify(token, getKey, { algorithms: ["RS256"], issuer: "http://localhost:4444" }, (err, decoded) => {
+      if (err) return reject(err);
+      resolve(decoded);
+    });
+  });
+
+  if (!decoded || typeof decoded !== "object") {
+    return res.status(401).json({ msg: "Invalid JWT payload" });
+  }
+  const userId = decoded.sub;        // 🔥 CHANGE THIS
+  const roles = decoded.roles || [];
 
     let requestedTenants = req.query.tenant;
     if (!requestedTenants) {

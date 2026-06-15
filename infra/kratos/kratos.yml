@@ -67,6 +67,9 @@ selfservice:
       lifespan: 1h
       enabled: true
 
+oauth2_provider:
+  url: http://hydra:4445
+
 secrets:
   cookie:
     - "please-change-this-secret"

@@ -8,6 +8,64 @@ import { pick as pickLanguage } from "accept-language-parser"
 import { AxiosError } from "axios"
 import { NextFunction, Request, Response } from "express"
 
+const apiSessionCookieName = "ory_session_token"
+
+const cookieSecure =
+  process.env.COOKIE_SECURE === "true" || process.env.NODE_ENV === "production"
+
+const apiSessionCookieOptions = {
+  httpOnly: true,
+  path: "/",
+  sameSite: "lax" as const,
+  secure: cookieSecure,
+}
+
+export const getKratosSessionToken = (req: Request): string | undefined => {
+  const sessionHeader = req.header("x-session-token")
+
+  if (typeof sessionHeader === "string" && sessionHeader.length > 0) {
+    return sessionHeader
+  }
+
+  const authorizationHeader = req.header("authorization")
+
+  if (
+    typeof authorizationHeader === "string" &&
+    authorizationHeader.toLowerCase().startsWith("bearer ")
+  ) {
+    return authorizationHeader.slice(7).trim()
+  }
+
+  const sessionCookie = req.cookies?.[apiSessionCookieName]
+
+  if (typeof sessionCookie === "string" && sessionCookie.length > 0) {
+    return sessionCookie
+  }
+
+  return undefined
+}
+
+export const getKratosSessionLookup = (req: Request) => {
+  const xSessionToken = getKratosSessionToken(req)
+  const cookie = req.header("cookie") || undefined
+
+  return xSessionToken ? { xSessionToken, cookie } : { cookie }
+}
+
+export const persistKratosSessionToken = (req: Request, res: Response) => {
+  const sessionToken = getKratosSessionToken(req)
+
+  if (!sessionToken) {
+    return
+  }
+
+  res.cookie(apiSessionCookieName, sessionToken, apiSessionCookieOptions)
+}
+
+export const clearPersistedKratosSessionToken = (res: Response) => {
+  res.clearCookie(apiSessionCookieName, apiSessionCookieOptions)
+}
+
 /**
  * Checks the error returned by toSession() and initiates a 2FA flow if necessary
  * or returns false.
@@ -73,7 +131,7 @@ export const requireAuth =
       }
     }
     frontend
-      .toSession({ cookie: req.header("cookie") })
+      .toSession(getKratosSessionLookup(req))
       .then(addSessionToRequest(req))
       .then(() => next())
       .catch((err: AxiosError) => {
@@ -106,8 +164,9 @@ export const setSession =
   (createHelpers: RouteOptionsCreator) =>
   (req: Request, res: Response, next: NextFunction) => {
     const { frontend, apiBaseUrl } = createHelpers(req, res)
+    persistKratosSessionToken(req, res)
     frontend
-      .toSession({ cookie: req.header("cookie") })
+      .toSession(getKratosSessionLookup(req))
       .then(addSessionToRequest(req))
       .catch(maybeInitiate2FA(req, res, apiBaseUrl))
       .then(() => next())
@@ -123,8 +182,9 @@ export const requireNoAuth =
   (createHelpers: RouteOptionsCreator) =>
   (req: Request, res: Response, next: NextFunction) => {
     const { frontend } = createHelpers(req, res)
+    persistKratosSessionToken(req, res)
     frontend
-      .toSession({ cookie: req.header("cookie") })
+      .toSession(getKratosSessionLookup(req))
       .then(() => {
         res.redirect("welcome")
       })

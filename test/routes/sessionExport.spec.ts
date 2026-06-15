@@ -10,11 +10,12 @@ registerSessionExportRoute(app)
 
 describe("POST /api/session/jwt", () => {
 
-  test("401 when no session", async () => {
+  test("410 because custom JWT minting is disabled", async () => {
     const res = await request(app)
       .post("/api/session/jwt")
 
-    expect(res.status).toBe(401)
+    expect(res.status).toBe(410)
+    expect(res.body.error).toMatch(/Custom JWT minting is disabled/)
   })
 
 })

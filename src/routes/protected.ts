@@ -7,7 +7,9 @@ const router = Router();
 router.get("/api/protected", requireJwt, async (req: any, res) => {
   const tenantId = req.query.tenant as string;
   const subject = req.jwt.sub;       // ✅ identity id
-  const role = req.jwt.role;         // ✅ role from JWT
+  const role =
+    req.jwt.role ||
+    (Array.isArray(req.jwt.roles) ? req.jwt.roles[0] : undefined); // ✅ role from Hydra JWT claims
 
   console.log("CHECK:", subject, tenantId, role);
 

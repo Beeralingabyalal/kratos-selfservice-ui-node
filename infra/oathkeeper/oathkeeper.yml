@@ -14,6 +14,14 @@ log:
 
 
 authenticators:
+  jwt:
+    enabled: true
+    config:
+      jwks_urls:
+        - http://hydra:4444/.well-known/jwks.json
+      trusted_issuers:
+        - http://hydra:4444/
+
   cookie_session:
     enabled: true
     config:
